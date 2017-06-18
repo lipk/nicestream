@@ -276,6 +276,7 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             uint8_t prev = 0;
             bool has_prev = false;
             bool is_range = false;
+            bool bracket_ok = false;
             bool negate = false;
             for (size_t i = 1; i<rem; ++i, ++offset) {
                 if (base[i] == '\\' && !brack_esc) {
@@ -293,9 +294,13 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                     is_range = true;
                 } else if (base[i] == ']' && !brack_esc) {
                     ++offset;
+                    bracket_ok = true;
                     break;
                 } else {
                     if (is_range) {
+                        if (base[i] < prev) {
+                            throw invalid_regex();
+                        }
                         ranges.emplace_back(prev, base[i]);
                         has_prev = false;
                         is_range = false;
@@ -307,8 +312,9 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                         has_prev = true;
                     }
                 }
+                brack_esc = false;
             }
-            if (is_range) {
+            if (is_range || !bracket_ok) {
                 throw invalid_regex();
             }
             if (has_prev) {
