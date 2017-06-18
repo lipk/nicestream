@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 
-namespace nice {
+namespace nstr {
 
 class nfa;
 class sep {

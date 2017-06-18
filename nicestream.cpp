@@ -5,7 +5,7 @@
 #include <vector>
 #include <cctype>
 
-namespace nice {
+namespace nstr {
 // ***************************************************************
 // NFA CONSTRUCTION & EXECUTION
 // ***************************************************************

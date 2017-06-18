@@ -4,11 +4,11 @@
 int main() {
     // read three ints; discard the second one
     int i, j;
-    std::cin >> i >> nice::skip<int>() >> j;
+    std::cin >> i >> nstr::skip<int>() >> j;
     std::cout << i << " " << j << std::endl;
 
     // read two ints separated by a comma
-    std::cin >> i >> nice::sep(", *") >> j;
+    std::cin >> i >> nstr::sep(", *") >> j;
     std::cout << i << " " << j << std::endl;
 }
 
