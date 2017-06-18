@@ -2,7 +2,8 @@
 
 ### Docs
 
-* Added manual
+* Added user manual
+* Updated readme
 
 ## 0.0.2 (2017.06.18)
 

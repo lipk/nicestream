@@ -7,15 +7,15 @@ you can simply >> into the usual way to skip over unimportant fields or formatti
 
 No more "trash" variables - use nice::skip to ignore the field you don't need:
 
-    std::cin >> i >> nice::skip<int>() >> j;
+    std::cin >> i >> nstr::skip<int>() >> j;
 
 Or even multiple fields:
 
-    std::cin >> i >> nice::skip<int, double>() >> j;
+    std::cin >> i >> nstr::skip<int, double>() >> j;
 
 Specify field separators with regular expressions:
 
-    std::cin >> i >> nice::sep(" *, *") >> j;
+    std::cin >> i >> nstr::sep(" *, *") >> j;
 
 For details, see the [manual](manual.md).
 
