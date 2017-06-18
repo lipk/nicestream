@@ -37,6 +37,7 @@ class nfa {
     static nfa parse_regex(const char *regex, size_t size);
 
     nfa(uint8_t c);
+    nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges);
     nfa();
 
 public:
@@ -149,6 +150,17 @@ nfa::nfa(uint8_t c) {
     this->states.push_back({{}, {}, match_state::ACCEPT});
 }
 
+nfa::nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges) {
+    std::map<uint8_t, std::vector<int>> trans;
+    for (const auto& range : ranges) {
+        for (uint8_t c = range.first; c <= range.second; ++c) {
+            trans.insert({c, {1}});
+        }
+    }
+    this->states.push_back({std::move(trans), {}, match_state::UNSURE});
+    this->states.push_back({{}, {}, match_state::ACCEPT});
+}
+
 nfa::nfa() {
     this->states.push_back({{}, {}, match_state::ACCEPT});
 }
@@ -240,6 +252,45 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                 throw invalid_regex();
             }
             sequence.emplace_back(loop(nfa(sequence.back())));
+        } else if (base[0] == '[' && !escape) {
+            std::vector<std::pair<uint8_t, uint8_t>> ranges;
+            bool brack_esc = false;
+            uint8_t prev = 0;
+            bool has_prev = false;
+            bool is_range = false;
+            for (size_t i = 1; i<rem; ++i, ++offset) {
+                if (base[i] == '\\' && !brack_esc) {
+                    brack_esc = true;
+                    continue;
+                } else if (base[i] == '-' && !brack_esc) {
+                    if (!has_prev) {
+                        throw invalid_regex();
+                    }
+                    is_range = true;
+                } else if (base[i] == ']' && !brack_esc) {
+                    ++offset;
+                    break;
+                } else {
+                    if (is_range) {
+                        ranges.emplace_back(prev, base[i]);
+                        has_prev = false;
+                        is_range = false;
+                    } else {
+                        if (has_prev) {
+                            ranges.emplace_back(prev, prev);
+                        }
+                        prev = base[i];
+                        has_prev = true;
+                    }
+                }
+            }
+            if (is_range) {
+                throw invalid_regex();
+            }
+            if (has_prev) {
+                ranges.emplace_back(prev, prev);
+            }
+            sequence.emplace_back(nfa(ranges));
         } else {
             sequence.emplace_back(nfa(base[0]));
         }
