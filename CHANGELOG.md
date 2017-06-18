@@ -2,7 +2,7 @@
 
 ### Features
 
-* More regex features: character classes, quantifiers, + and ? operators
+* More regex features: character classes, quantifiers, ., + and ?
 
 ### Fixes
 

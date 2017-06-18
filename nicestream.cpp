@@ -312,6 +312,8 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                 ranges.emplace_back(prev, prev);
             }
             sequence.emplace_back(nfa(ranges, negate));
+        } else if (base[0] == '.' && !escape) {
+            sequence.emplace_back(nfa({{0, 255}}, false));
         } else if (escape) {
             std::vector<std::pair<uint8_t, uint8_t>> ranges;
             bool negate = false;
