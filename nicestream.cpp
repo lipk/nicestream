@@ -224,11 +224,14 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             bool comma_ok = false, brace_ok = false;
             for (size_t i = 1; i<rem; ++i, ++offset) {
                 if (base[i] == ',') {
+                    if (i == 1 || comma_ok) {
+                        throw invalid_regex();
+                    }
                     comma_ok = true;
+                } else if (base[i] == '}') {
                     if (i == 1) {
                         throw invalid_regex();
                     }
-                } else if (base[i] == '}') {
                     brace_ok = true;
                     ++offset;
                     break;
