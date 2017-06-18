@@ -51,12 +51,12 @@ so
 
 Supported regex features:
 
-    * ., ?, +, *
-    * Character classes defined with [...] and [^...]
-    * Brace quantizers: {n,m}, {n,}, {n}
-    * Union: (x|y)
-    * Predefined classes: \d for digits, \s for whitespace, \w for alphanumeric
-      plus _, and the complementers of those as \D, \W, and \S respectively.
+* ., ?, +, *
+* Character classes defined with [...] and [^...]
+* Brace quantizers: {n,m}, {n,}, {n}
+* Union: (x|y)
+* Predefined classes: \d for digits, \s for whitespace, \w for alphanumeric
+  plus _, and the complementers of those as \D, \W, and \S respectively.
 
 Malformed regular expressions will yield an invalid_regex exception.
 
