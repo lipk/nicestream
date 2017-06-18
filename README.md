@@ -1,5 +1,7 @@
 # nicestream
 
+[![Build Status](https://travis-ci.org/lipk/nicestream.svg?branch=master)](https://travis-ci.org/lipk/nicestream)
+
 C++ input streams are notoriously clunky and inconvenient to use. **nicestream** tries to improve that by providing classes that
 you can simply >> into the usual way to skip over unimportant fields or formatting data in the stream. Work in progress.
 
