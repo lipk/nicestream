@@ -1,5 +1,7 @@
 CXXFLAGS=-std=c++14 -O3 -Wall -Wextra
-FILES=nicestream.cpp demo.cpp
+FILES=nicestream.cpp
 
-all:
-	c++ $(CXXFLAGS) $(FILES) -o nice_demo
+test:
+	c++ $(CXXFLAGS) $(FILES) test.cpp -Icatch/include -o nice_test
+demo:
+	c++ $(CXXFLAGS) $(FILES) demo.cpp -o nice_demo

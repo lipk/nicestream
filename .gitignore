@@ -2,4 +2,5 @@
 .*.sw?
 .lvimrc
 nice_demo
+nice_test
 .gdb_history
