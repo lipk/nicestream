@@ -172,6 +172,16 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                 throw invalid_regex();
             }
             sequence.back() = repeat(std::move(sequence.back()));
+        } else if (base[0] == '?' && !escape) {
+            if (offset == 0) {
+                throw invalid_regex();
+            }
+            sequence.back() = unite(std::move(sequence.back()), nfa());
+        } else if (base[0] == '+' && !escape) {
+            if (offset == 0) {
+                throw invalid_regex();
+            }
+            sequence.emplace_back(repeat(nfa(sequence.back())));
         } else {
             sequence.emplace_back(nfa(base[0]));
         }
