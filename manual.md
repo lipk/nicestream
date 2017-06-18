@@ -52,7 +52,7 @@ so
 Supported regex features:
 
     * ., ?, +, *
-    * Character classes defined with [...] and \[^...]
+    * Character classes defined with [...] and [^...]
     * Brace quantizers: {n,m}, {n,}, {n}
     * Union: (x|y)
     * Predefined classes: \d for digits, \s for whitespace, \w for alphanumeric
