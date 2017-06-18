@@ -19,7 +19,6 @@ Specify field separators with regular expressions:
 
 ## Limitations
 
-The regex engine currently recognizes an extremely limited subset only - namely single characters, *, () and (|). More will be
-added later.
+The regex engine currently recognizes a limited subset of PCRE only.
 
 **nicestream** is in a very early stage of development, so expect bugs :)

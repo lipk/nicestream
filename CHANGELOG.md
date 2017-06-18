@@ -1,5 +1,7 @@
 ## upcoming
 
+## 0.0.2 (2017.06.18)
+
 ### Features
 
 * More regex features: character classes, quantifiers, ., + and ?
