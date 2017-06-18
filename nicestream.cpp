@@ -37,7 +37,7 @@ class nfa {
     static nfa parse_regex(const char *regex, size_t size);
 
     nfa(uint8_t c);
-    nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges);
+    nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges, bool negate);
     nfa();
 
 public:
@@ -150,11 +150,26 @@ nfa::nfa(uint8_t c) {
     this->states.push_back({{}, {}, match_state::ACCEPT});
 }
 
-nfa::nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges) {
+nfa::nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges, bool negate) {
     std::map<uint8_t, std::vector<int>> trans;
-    for (const auto& range : ranges) {
-        for (uint8_t c = range.first; c <= range.second; ++c) {
-            trans.insert({c, {1}});
+    if (negate) {
+        for (size_t c = 0; c<256; ++c) {
+            bool in_range = false;
+            for (const auto& range : ranges) {
+                if (c >= range.first && c <= range.second) {
+                    in_range = true;
+                    break;
+                }
+            }
+            if (!in_range) {
+                trans.insert({c, {1}});
+            }
+        }
+    } else {
+        for (const auto& range : ranges) {
+            for (uint8_t c = range.first; c <= range.second; ++c) {
+                trans.insert({c, {1}});
+            }
         }
     }
     this->states.push_back({std::move(trans), {}, match_state::UNSURE});
@@ -258,10 +273,16 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             uint8_t prev = 0;
             bool has_prev = false;
             bool is_range = false;
+            bool negate = false;
             for (size_t i = 1; i<rem; ++i, ++offset) {
                 if (base[i] == '\\' && !brack_esc) {
                     brack_esc = true;
                     continue;
+                } else if (base[i] == '^' && !brack_esc) {
+                    if (i != 1) {
+                        throw invalid_regex();
+                    }
+                    negate = true;
                 } else if (base[i] == '-' && !brack_esc) {
                     if (!has_prev) {
                         throw invalid_regex();
@@ -290,7 +311,20 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             if (has_prev) {
                 ranges.emplace_back(prev, prev);
             }
-            sequence.emplace_back(nfa(ranges));
+            sequence.emplace_back(nfa(ranges, negate));
+        } else if (escape) {
+            std::vector<std::pair<uint8_t, uint8_t>> ranges;
+            bool negate = false;
+            switch (base[0]) {
+            case 'd': ranges = {{'0', '9'}}; break;
+            case 'D': ranges = {{'0', '9'}}; negate = true; break;
+            case 'w': ranges = {{'a', 'z'}, {'A', 'Z'}, {'_', '_'}, {'0', '9'}}; break;
+            case 'W': ranges = {{'a', 'z'}, {'A', 'Z'}, {'_', '_'}, {'0', '9'}}; negate = true; break;
+            case 's': ranges = {{' ', ' '}, {'\t', '\r'}}; break;
+            case 'S': ranges = {{' ', ' '}, {'\t', '\r'}}; negate = true; break;
+            default: ranges = {{base[0], base[0]}};
+            }
+            sequence.emplace_back(nfa(ranges, negate));
         } else {
             sequence.emplace_back(nfa(base[0]));
         }
