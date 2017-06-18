@@ -167,7 +167,7 @@ nfa::nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges, bool negate) {
         }
     } else {
         for (const auto& range : ranges) {
-            for (uint8_t c = range.first; c <= range.second; ++c) {
+            for (size_t c = range.first; c <= range.second; ++c) {
                 trans.insert({c, {1}});
             }
         }
