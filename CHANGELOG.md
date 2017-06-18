@@ -3,6 +3,7 @@
 ### Features
 
 * More regex features: character classes, quantifiers, ., + and ?
+* Unit tests
 
 ### Fixes
 
