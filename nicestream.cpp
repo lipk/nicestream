@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <cctype>
 
 namespace nice {
 // ***************************************************************
@@ -30,8 +31,9 @@ class nfa {
     void add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set);
 
     static nfa concatenate(nfa&& lhs, nfa&& rhs);
-    static nfa repeat(nfa&& x);
+    static nfa loop(nfa&& x);
     static nfa unite(nfa&& lhs, nfa&& rhs);
+    static nfa repeat(nfa&& x, int min, int max);
     static nfa parse_regex(const char *regex, size_t size);
 
     nfa(uint8_t c);
@@ -99,7 +101,7 @@ nfa nfa::concatenate(nfa &&lhs, nfa &&rhs) {
     return std::move(lhs);
 }
 
-nfa nfa::repeat(nfa &&x) {
+nfa nfa::loop(nfa &&x) {
     x.states.emplace_back(nfa_state({}, {}, match_state::ACCEPT));
     x.states.insert(x.states.begin(), {{}, {1, static_cast<int>(x.states.size())}, match_state::UNSURE});
     for (size_t i = 1; i<x.states.size()-1; ++i) {
@@ -116,6 +118,30 @@ nfa nfa::unite(nfa &&lhs, nfa &&rhs) {
     lhs.states.insert(lhs.states.begin(), {{}, {1, static_cast<int>(lhs.states.size()+1)}, match_state::UNSURE});
     lhs.states.insert(lhs.states.end(), rhs.states.begin(), rhs.states.end());
     return std::move(lhs);
+}
+
+nfa nfa::repeat(nfa &&x, int min, int max) {
+    nfa result;
+    nfa x_orig = std::move(x);
+    for (int i = 0; i<min; ++i) {
+        result = concatenate(std::move(result), nfa(x_orig));
+    }
+    if (max == -1) {
+        result = concatenate(std::move(result), loop(std::move(x_orig)));
+    } else {
+        if (max < min) {
+            throw invalid_regex();
+        }
+        for (int i = 0; i<max-min; ++i) {
+            for (size_t j = 0; j<result.states.size(); ++j) {
+                if (result.states[j].match == match_state::ACCEPT) {
+                    result.states[j].e_transitions.push_back(result.states.size() - j);
+                }
+            }
+            result.states.insert(result.states.end(), x_orig.states.begin(), x_orig.states.end());
+        }
+    }
+    return result;
 }
 
 nfa::nfa(uint8_t c) {
@@ -141,7 +167,7 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             size_t rhs_begin = 0, rhs_size = 0;
             int level = 1;
             size_t i;
-            for (i = 1; i<rem && level > 0; ++i) {
+            for (i = 1; i<rem && level > 0; ++i, ++offset) {
                 if (base[i] == '\\') {
                     i += 1;
                 } else if (base[i] == '(') {
@@ -166,12 +192,44 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                 par = parse_regex(base + lhs_begin, i-1-lhs_begin);
             }
             sequence.emplace_back(std::move(par));
-            offset += i-1;
+        } else if (base[0] == '{' && !escape) {
+            int min = 0, max = -1;
+            bool comma_ok = false, brace_ok = false;
+            for (size_t i = 1; i<rem; ++i, ++offset) {
+                if (base[i] == ',') {
+                    comma_ok = true;
+                    if (i == 1) {
+                        throw invalid_regex();
+                    }
+                } else if (base[i] == '}') {
+                    brace_ok = true;
+                    ++offset;
+                    break;
+                } else if (std::isdigit(base[i])) {
+                    if (comma_ok) {
+                        if (max == -1) {
+                            max = 0;
+                        }
+                        max = max*10 + base[i] - '0';
+                    } else {
+                        min = min*10 + base[i] - '0';
+                    }
+                } else {
+                    throw invalid_regex();
+                }
+            }
+            if (!brace_ok) {
+                throw invalid_regex();
+            }
+            if (!comma_ok) {
+                max = min;
+            }
+            sequence.back() = repeat(std::move(sequence.back()), min, max);
         } else if (base[0] == '*' && !escape) {
             if (offset == 0) {
                 throw invalid_regex();
             }
-            sequence.back() = repeat(std::move(sequence.back()));
+            sequence.back() = loop(std::move(sequence.back()));
         } else if (base[0] == '?' && !escape) {
             if (offset == 0) {
                 throw invalid_regex();
@@ -181,7 +239,7 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
             if (offset == 0) {
                 throw invalid_regex();
             }
-            sequence.emplace_back(repeat(nfa(sequence.back())));
+            sequence.emplace_back(loop(nfa(sequence.back())));
         } else {
             sequence.emplace_back(nfa(base[0]));
         }
