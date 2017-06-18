@@ -17,6 +17,8 @@ Specify field separators with regular expressions:
 
     std::cin >> i >> nice::sep(" *, *") >> j;
 
+For details, see the [manual](manual.md).
+
 ## Limitations
 
 The regex engine currently recognizes a limited subset of PCRE only.

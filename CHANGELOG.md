@@ -1,5 +1,9 @@
 ## upcoming
 
+### Docs
+
+* Added manual
+
 ## 0.0.2 (2017.06.18)
 
 ### Features
