@@ -202,6 +202,9 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
                 } else if (base[i] == ')') {
                     --level;
                 } else if (base[i] == '|' && level == 1) {
+                    if (rhs_begin != 0) {
+                        throw invalid_regex();
+                    }
                     lhs_size = i - lhs_begin;
                     rhs_begin = i+1;
                 }
