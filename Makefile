@@ -1,4 +1,4 @@
-CXXFLAGS=-std=c++14 -O3 -Wall -Wextra -Werror
+CXXFLAGS=-std=c++11 -O3 -Wall -Wextra -Werror
 FILES=nicestream.cpp
 
 test:
