@@ -6,6 +6,7 @@
 #include "nicestream.hpp"
 
 using namespace nstr;
+typedef std::stringstream sstr;
 
 TEST_CASE("Regex parsing", "[regex]") {
     // simple literals
@@ -68,4 +69,32 @@ TEST_CASE("Regex parsing", "[regex]") {
     CHECK_NOTHROW(sep("(a|\\|a)"));
     CHECK_THROWS_AS(sep("(a|b|c)"), invalid_regex); // FIXME: maybe this isn't invalid
     CHECK_THROWS_AS(sep("(a|c()"), invalid_regex);
+}
+
+TEST_CASE("nstr::skip", "[skip]") {
+    {
+        int i, j;
+        sstr("10 20 30 40") >> i >> skip<int, int>() >> j;
+        CHECK(i == 10);
+        CHECK(j == 40);
+    }
+    {
+        int i, j;
+        sstr("10 20 30 40") >> i >> skip<int>() >> j;
+        CHECK(i == 10);
+        CHECK(j == 30);
+    }
+    {
+        int i, j;
+        sstr("10 20 30 40") >> i >> skip<>() >> j;
+        CHECK(i == 10);
+        CHECK(j == 20);
+    }
+    {
+        int i;
+        std::string s;
+        sstr("10 20 abc def") >> i >> skip<int, std::string>() >> s;
+        CHECK(i == 10);
+        CHECK(s == "def");
+    }
 }
