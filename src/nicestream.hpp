@@ -3,20 +3,19 @@
 
 #include <string>
 #include <iostream>
+#include "nfa.hpp"
 
 namespace nstr {
 
-class nfa;
 class sep {
     friend std::istream& operator >>(std::istream&, sep);
-    nfa* nfa_p;
+    nstr_private::nfa_executor executor;
 public:
     sep(const std::string& regex);
     sep(const sep&);
     sep(const sep&&);
     sep& operator =(const sep&);
     sep& operator =(sep&&);
-    ~sep();
 };
 
 std::istream& operator >>(std::istream& is, sep field);
@@ -33,10 +32,9 @@ std::istream& operator >>(std::istream& is, skip<First, Rest...>) {
 
 std::istream& operator >>(std::istream& is, skip<>);
 
-struct invalid_regex : public std::exception {};
 struct invalid_input : public std::exception {};
 struct stream_error : public std::exception {};
-
+struct invalid_regex : public std::exception {};
 }
 
 #endif

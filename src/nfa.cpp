@@ -1,95 +1,12 @@
+#include "nfa.hpp"
 #include "nicestream.hpp"
-#include <cstdint>
-#include <string>
-#include <map>
-#include <vector>
-#include <cctype>
 
-namespace nstr {
-// ***************************************************************
-// NFA CONSTRUCTION & EXECUTION
-// ***************************************************************
-enum class match_state {
-    ACCEPT = 0, UNSURE = 1, REFUSE = 2
-};
+using namespace nstr;
 
-struct nfa_state {
-    std::map<uint8_t, std::vector<int>> transitions;
-    std::vector<int> e_transitions;
-    match_state match;
+namespace nstr_private {
 
-    nfa_state(std::map<uint8_t, std::vector<int>> &&transitions, std::vector<int> &&e_transitions, match_state match);
-};
 nfa_state::nfa_state(std::map<uint8_t, std::vector<int>> &&transitions, std::vector<int> &&e_transitions, match_state match) :
     transitions(std::move(transitions)), e_transitions(std::move(e_transitions)), match(match) {}
-
-class nfa {
-    std::vector<nfa_state> states;
-    std::vector<size_t> current;
-
-    void transition_to(size_t index, std::vector<size_t>& index_set);
-    void add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set);
-
-    static nfa concatenate(nfa&& lhs, nfa&& rhs);
-    static nfa loop(nfa&& x);
-    static nfa unite(nfa&& lhs, nfa&& rhs);
-    static nfa repeat(nfa&& x, int min, int max);
-    static nfa parse_regex(const char *regex, size_t size);
-
-    nfa(uint8_t c);
-    nfa(const std::vector<std::pair<uint8_t, uint8_t>> &ranges, bool negate);
-    nfa();
-
-public:
-    nfa(const std::string& regex);
-    nfa(nfa&& other);
-    nfa& operator=(nfa&& other);
-    nfa(const nfa& other) = default;
-    nfa& operator=(const nfa& other) = default;
-
-    
-    void next(uint8_t symbol);
-    match_state match() const;
-};
-
-void nfa::transition_to(size_t index, std::vector<size_t>& index_set) {
-    const auto& state = this->states[index];
-    for (size_t i : state.e_transitions) {
-        this->transition_to(index + i, index_set);
-    }
-    if (state.match != match_state::REFUSE) {
-        index_set.push_back(index);
-    }
-}
-
-void nfa::add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set) {
-    const auto& state = this->states[index];
-    const auto it = state.transitions.find(symbol);
-    if (it == state.transitions.end()) {
-        return;
-    }
-    for (size_t i : it->second) {
-        this->transition_to(index + i, index_set);
-    }
-}
-
-void nfa::next(uint8_t symbol) {
-    std::vector<size_t> next;
-    next.reserve(this->current.size());
-    for (const auto& index : this->current) {
-        this->add_successor_states(symbol, index, next);
-    }
-    this->current = std::move(next);
-}
-
-match_state nfa::match() const {
-    match_state result = match_state::REFUSE;
-    for (size_t i = this->current.size(); i>0; --i) {
-        const match_state match_i = this->states[this->current[i-1]].match;
-        result = std::min(result, match_i);
-    }
-    return result;
-}
 
 nfa nfa::concatenate(nfa &&lhs, nfa &&rhs) {
     for (size_t i = 0; i<lhs.states.size(); ++i) {
@@ -355,6 +272,10 @@ nfa nfa::parse_regex(const char *regex, size_t size) {
     }
 }
 
+const std::vector<nfa_state>& nfa::get_states() const {
+    return this->states;
+}
+
 nfa& nfa::operator=(nfa &&other) {
     if (this != &other) {
         this->states = std::move(other.states);
@@ -369,68 +290,51 @@ nfa::nfa(nfa &&other) {
 
 nfa::nfa(const std::string& regex) {
     *this = parse_regex(regex.c_str(), regex.size());
+}
+
+void nfa_executor::transition_to(size_t index, std::vector<size_t>& index_set) {
+    const auto& state = this->state_machine.get_states()[index];
+    for (size_t i : state.e_transitions) {
+        this->transition_to(index + i, index_set);
+    }
+    if (state.match != match_state::REFUSE) {
+        index_set.push_back(index);
+    }
+}
+
+void nfa_executor::add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set) {
+    const auto& state = this->state_machine.get_states()[index];
+    const auto it = state.transitions.find(symbol);
+    if (it == state.transitions.end()) {
+        return;
+    }
+    for (size_t i : it->second) {
+        this->transition_to(index + i, index_set);
+    }
+}
+
+void nfa_executor::next(uint8_t symbol) {
+    std::vector<size_t> next;
+    next.reserve(this->current.size());
+    for (const auto& index : this->current) {
+        this->add_successor_states(symbol, index, next);
+    }
+    this->current = std::move(next);
+}
+
+match_state nfa_executor::match() const {
+    match_state result = match_state::REFUSE;
+    for (size_t i = this->current.size(); i>0; --i) {
+        const match_state match_i = this->state_machine.get_states()[this->current[i-1]].match;
+        result = std::min(result, match_i);
+    }
+    return result;
+}
+
+nfa_executor::nfa_executor(const std::string &regex)
+    : state_machine(regex)
+{
     this->transition_to(0, this->current);
 }
-
-// *************************************************************
-// STREAM STUFF
-// *************************************************************
-
-sep::sep(const std::string& regex) : nfa_p(new nfa(regex))
-{
 }
 
-sep::~sep() {
-    delete nfa_p;
-}
-
-sep::sep(const sep& other) : nfa_p(nullptr) {
-    *this = other;
-}
-
-sep &sep::operator=(const sep& other) {
-    if (this != &other) {
-        delete this->nfa_p;
-        this->nfa_p = new nfa(*other.nfa_p);
-    }
-    return *this;
-}
-
-sep::sep(const sep&& other) : nfa_p(nullptr) {
-    *this = std::move(other);
-}
-
-sep &sep::operator=(sep&& other) {
-    if (this != &other) {
-        std::swap(this->nfa_p, other.nfa_p);
-    }
-    return *this;
-}
-
-std::istream &operator >>(std::istream &is, sep what) {
-    bool is_valid = what.nfa_p->match() == match_state::ACCEPT;
-    std::vector<uint8_t> buf;
-    while (true) {
-        uint8_t next = static_cast<uint8_t>(is.get());
-        buf.push_back(next);
-        what.nfa_p->next(next);
-        if (what.nfa_p->match() == match_state::ACCEPT) {
-            is_valid = true;
-            buf.clear();
-        } else if (what.nfa_p->match() == match_state::REFUSE) {
-            break;
-        }
-    }
-    for (size_t i = buf.size(); i>0; --i) {
-        is.putback(buf[i-1]);
-    }
-    if (!is_valid) {
-        throw invalid_input();
-    }
-    return is;
-}
-
-std::istream& operator >>(std::istream& is, skip<>) {
-    return is;
-}
-}
