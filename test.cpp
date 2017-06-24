@@ -3,9 +3,11 @@
 #include <string>
 #include <sstream>
 
-#include "nicestream.hpp"
+#include "src/nicestream.hpp"
+#include "src/nfa.hpp"
 
 using namespace nstr;
+using namespace nstr_private;
 typedef std::stringstream sstr;
 
 TEST_CASE("Regex parsing", "[regex]") {
@@ -96,5 +98,39 @@ TEST_CASE("nstr::skip", "[skip]") {
         sstr("10 20 abc def") >> i >> skip<int, std::string>() >> s;
         CHECK(i == 10);
         CHECK(s == "def");
+    }
+}
+
+TEST_CASE("Match lengths", "[length]") {
+    {
+        nfa_executor e("a*");
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 0);
+        e.next('a');
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 1);
+        e.next('a');
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 2);
+        e.next('a');
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 3);
+    }
+    {
+        nfa_executor e("(a{3}|a)");
+        CHECK(e.match() == match_state::UNSURE);
+        CHECK(e.longest_match() == 0);
+        e.next('a');
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 1);
+        e.next('a');
+        CHECK(e.match() == match_state::UNSURE);
+        CHECK(e.longest_match() == 0);
+        e.next('a');
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 3);
+        e.next('a');
+        CHECK(e.match() == match_state::REFUSE);
+        CHECK(e.longest_match() == 0);
     }
 }

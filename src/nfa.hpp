@@ -46,18 +46,26 @@ public:
     const std::vector<nfa_state> &get_states() const;
 };
 
+struct nfa_cursor {
+    size_t index;
+    size_t count;
+
+    nfa_cursor(size_t index, size_t count);
+};
+
 class nfa_executor {
     nfa state_machine;
-    std::vector<size_t> current;
+    std::vector<nfa_cursor> current;
 
-    void transition_to(size_t index, std::vector<size_t>& index_set);
-    void add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set);
+    void transition_to(const nfa_cursor &cursor, int offset, std::vector<nfa_cursor>& index_set);
+    void add_successor_states(uint8_t symbol, const nfa_cursor& cursor, std::vector<nfa_cursor>& index_set);
 
 public:
     nfa_executor(const std::string &regex);
 
     void next(uint8_t symbol);
     match_state match() const;
+    size_t longest_match() const;
 };
 }
 #endif

@@ -292,32 +292,35 @@ nfa::nfa(const std::string& regex) {
     *this = parse_regex(regex.c_str(), regex.size());
 }
 
-void nfa_executor::transition_to(size_t index, std::vector<size_t>& index_set) {
-    const auto& state = this->state_machine.get_states()[index];
+nfa_cursor::nfa_cursor(size_t index, size_t count) :
+    index(index), count(count) {}
+
+void nfa_executor::transition_to(const nfa_cursor &cursor, int offset, std::vector<nfa_cursor>& index_set) {
+    const auto& state = this->state_machine.get_states()[cursor.index + offset];
     for (size_t i : state.e_transitions) {
-        this->transition_to(index + i, index_set);
+        this->transition_to(cursor, offset + i, index_set);
     }
     if (state.match != match_state::REFUSE) {
-        index_set.push_back(index);
+        index_set.emplace_back(cursor.index + offset, cursor.count+1);
     }
 }
 
-void nfa_executor::add_successor_states(uint8_t symbol, size_t index, std::vector<size_t>& index_set) {
-    const auto& state = this->state_machine.get_states()[index];
+void nfa_executor::add_successor_states(uint8_t symbol, const nfa_cursor &cursor, std::vector<nfa_cursor>& cursor_set) {
+    const auto& state = this->state_machine.get_states()[cursor.index];
     const auto it = state.transitions.find(symbol);
     if (it == state.transitions.end()) {
         return;
     }
     for (size_t i : it->second) {
-        this->transition_to(index + i, index_set);
+        this->transition_to(cursor, i, cursor_set);
     }
 }
 
 void nfa_executor::next(uint8_t symbol) {
-    std::vector<size_t> next;
+    std::vector<nfa_cursor> next;
     next.reserve(this->current.size());
-    for (const auto& index : this->current) {
-        this->add_successor_states(symbol, index, next);
+    for (const auto& cursor : this->current) {
+        this->add_successor_states(symbol, cursor, next);
     }
     this->current = std::move(next);
 }
@@ -325,8 +328,19 @@ void nfa_executor::next(uint8_t symbol) {
 match_state nfa_executor::match() const {
     match_state result = match_state::REFUSE;
     for (size_t i = this->current.size(); i>0; --i) {
-        const match_state match_i = this->state_machine.get_states()[this->current[i-1]].match;
+        const match_state match_i = this->state_machine.get_states()[this->current[i-1].index].match;
         result = std::min(result, match_i);
+    }
+    return result;
+}
+
+size_t nfa_executor::longest_match() const {
+   size_t result = 0;
+    for (size_t i = this->current.size(); i>0; --i) {
+        const match_state match_i = this->state_machine.get_states()[this->current[i-1].index].match;
+        if (match_i == match_state::ACCEPT) {
+            result = std::max(current[i-1].count, result);
+        }
     }
     return result;
 }
@@ -334,7 +348,10 @@ match_state nfa_executor::match() const {
 nfa_executor::nfa_executor(const std::string &regex)
     : state_machine(regex)
 {
-    this->transition_to(0, this->current);
+    this->transition_to({0, 0}, 0, this->current);
+    for (auto& cursor : this->current) {
+        cursor.count = 0;
+    }
 }
 }
 
