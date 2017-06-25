@@ -316,6 +316,10 @@ void nfa_executor::add_successor_states(uint8_t symbol, const nfa_cursor &cursor
     }
 }
 
+void nfa_executor::start_path() {
+    this->transition_to({0, 0}, 0, this->current);
+}
+
 void nfa_executor::next(uint8_t symbol) {
     std::vector<nfa_cursor> next;
     next.reserve(this->current.size());
@@ -335,23 +339,20 @@ match_state nfa_executor::match() const {
 }
 
 size_t nfa_executor::longest_match() const {
-   size_t result = 0;
+   size_t result = 1;
     for (size_t i = this->current.size(); i>0; --i) {
         const match_state match_i = this->state_machine.get_states()[this->current[i-1].index].match;
         if (match_i == match_state::ACCEPT) {
             result = std::max(current[i-1].count, result);
         }
     }
-    return result;
+    return result-1;
 }
 
 nfa_executor::nfa_executor(const std::string &regex)
     : state_machine(regex)
 {
-    this->transition_to({0, 0}, 0, this->current);
-    for (auto& cursor : this->current) {
-        cursor.count = 0;
-    }
+    this->start_path();
 }
 }
 

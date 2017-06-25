@@ -133,4 +133,25 @@ TEST_CASE("Match lengths", "[length]") {
         CHECK(e.match() == match_state::REFUSE);
         CHECK(e.longest_match() == 0);
     }
+    {
+        nfa_executor e("(b|aba)");
+        CHECK(e.match() == match_state::UNSURE);
+        CHECK(e.longest_match() == 0);
+        e.next('a');
+        e.start_path();
+        CHECK(e.match() == match_state::UNSURE);
+        CHECK(e.longest_match() == 0);
+        e.next('b');
+        e.start_path();
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 1);
+        e.next('a');
+        e.start_path();
+        CHECK(e.match() == match_state::ACCEPT);
+        CHECK(e.longest_match() == 3);
+        e.next('a');
+        e.start_path();
+        CHECK(e.match() == match_state::UNSURE);
+        CHECK(e.longest_match() == 0);
+    }
 }

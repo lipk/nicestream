@@ -63,6 +63,7 @@ class nfa_executor {
 public:
     nfa_executor(const std::string &regex);
 
+    void start_path();
     void next(uint8_t symbol);
     match_state match() const;
     size_t longest_match() const;
