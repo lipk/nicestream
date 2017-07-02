@@ -32,6 +32,16 @@ std::istream& operator >>(std::istream& is, skip<First, Rest...>) {
 
 std::istream& operator >>(std::istream& is, skip<>);
 
+class until {
+    friend std::istream& operator >>(std::istream&, until);
+    nstr_private::nfa_executor nfa;
+    std::string &dst;
+public:
+    until(const std::string& regex, std::string &dst);
+};
+
+std::istream &operator >>(std::istream &is, until obj);
+
 struct invalid_input : public std::exception {};
 struct stream_error : public std::exception {};
 struct invalid_regex : public std::exception {};

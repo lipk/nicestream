@@ -67,6 +67,7 @@ public:
     void next(uint8_t symbol);
     match_state match() const;
     size_t longest_match() const;
+    size_t trim_short_matches();
 };
 }
 #endif

@@ -155,3 +155,40 @@ TEST_CASE("Match lengths", "[length]") {
         CHECK(e.longest_match() == 0);
     }
 }
+
+TEST_CASE("nstr::until", "[until]") {
+    {
+        std::string str1, str2;
+        sstr("aaa,bbb") >> until(",", str1) >> str2;
+        CHECK(str1 == "aaa");
+        CHECK(str2 == "bbb");
+    }
+    {
+        std::string str1, str2;
+        sstr("aaa,   bbb") >> until(", *", str1) >> str2;
+        CHECK(str1 == "aaa");
+        CHECK(str2 == "bbb");
+    }
+    {
+        std::string str1;
+        CHECK_THROWS_AS(sstr("aaa") >> until(";", str1), invalid_input);
+    }
+    {
+        std::string str1, str2;
+        sstr("aaa,,,,,") >> until(",{1,2}", str1) >> str2;
+        CHECK(str1 == "aaa");
+        CHECK(str2 == ",,,");
+    }
+    {
+        std::string str1, str2;
+        sstr("aaa") >> until("b*", str1) >> str2;
+        CHECK(str1 == "");
+        CHECK(str2 == "aaa");
+    }
+    {
+        std::string str1, str2;
+        sstr("aaa;;;;;") >> until("(;;)+", str1) >> str2;
+        CHECK(str1 == "aaa");
+        CHECK(str2 == ";");
+    }
+}

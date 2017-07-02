@@ -339,7 +339,7 @@ match_state nfa_executor::match() const {
 }
 
 size_t nfa_executor::longest_match() const {
-   size_t result = 1;
+    size_t result = 1;
     for (size_t i = this->current.size(); i>0; --i) {
         const match_state match_i = this->state_machine.get_states()[this->current[i-1].index].match;
         if (match_i == match_state::ACCEPT) {
@@ -347,6 +347,16 @@ size_t nfa_executor::longest_match() const {
         }
     }
     return result-1;
+}
+
+size_t nfa_executor::trim_short_matches() {
+    size_t max = this->longest_match();
+    for (size_t i = this->current.size(); i>0; --i) {
+        if (this->current[i-1].count != max) {
+            this->current.erase(this->current.begin() + i);
+        }
+    }
+    return max;
 }
 
 nfa_executor::nfa_executor(const std::string &regex)
