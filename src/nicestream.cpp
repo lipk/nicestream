@@ -21,6 +21,10 @@ std::istream &operator >>(std::istream &is, sep what) {
     std::vector<uint8_t> buf;
     while (true) {
         uint8_t next = static_cast<uint8_t>(is.get());
+        if (is.eof()) {
+            is.clear();
+            break;
+        }
         buf.push_back(next);
         what.executor.next(next);
         if (what.executor.match() == match_state::ACCEPT) {

@@ -4,6 +4,10 @@
 
 * until
 
+### Fixes
+
+* Handle EOF in sep
+
 ### Docs
 
 * Added user manual
