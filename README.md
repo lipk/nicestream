@@ -9,7 +9,7 @@ you can simply >> into the usual way to skip over unimportant fields or formatti
 
 ## Features
 
-No more "trash" variables - use nice::skip to ignore the field you don't need:
+No more "trash" variables - use nstr::skip to ignore the field you don't need:
 
     std::cin >> i >> nstr::skip<int>() >> j;
 
@@ -20,6 +20,10 @@ Or even multiple fields:
 Specify field separators with regular expressions:
 
     std::cin >> i >> nstr::sep(" *, *") >> j;
+
+nstr::until instead of getline:
+
+    std::cin >> until("[^\\]>", str);
 
 For details, see the [manual](manual.md).
 
