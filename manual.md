@@ -17,6 +17,19 @@ also launches all the unit tests. Catch compiles quite slowly, be patient.
 
 Everything nicestream lives in the nstr namespace in nicestream.hpp.
 
+### Supported regex features
+
+nicestream uses its own regex engine, which supports the following features:
+
+* ., ?, +, *
+* Character classes defined with [...] and [^...]
+* Brace quantizers: {n,m}, {n,}, {n}
+* Union: (x|y)
+* Predefined classes: \d for digits, \s for whitespace, \w for alphanumeric
+  plus _, and the complementers of those as \D, \W, and \S respectively.
+
+Malformed regular expressions will yield an invalid_regex exception.
+
 ### nstr::skip
 
 skip serves to replace dummy variables that are used only to read ignored data
@@ -49,16 +62,19 @@ so
 
 ...will yield "abc".
 
-Supported regex features:
+### nstr::until
 
-* ., ?, +, *
-* Character classes defined with [...] and [^...]
-* Brace quantizers: {n,m}, {n,}, {n}
-* Union: (x|y)
-* Predefined classes: \d for digits, \s for whitespace, \w for alphanumeric
-  plus _, and the complementers of those as \D, \W, and \S respectively.
+until takes two parameters: a regex and a string reference. It stops reading
+from the stream when it finds a matching subsequence and dumps the data, not
+including the terminating sequence, into the string. Like this:
 
-Malformed regular expressions will yield an invalid_regex exception.
+    std::stringstream("yadda yadda. yadda" >> nstr::until("\\.", str);
+
+str now contains the string "yadda yadda".
+
+### nstr::all
+
+Simply reads all data from the stream and puts it into a string. Example:
 
 ## Under the hood
 
