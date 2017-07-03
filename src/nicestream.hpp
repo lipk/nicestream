@@ -42,6 +42,15 @@ public:
 
 std::istream &operator >>(std::istream &is, until obj);
 
+class all {
+    friend std::istream& operator >>(std::istream&, all);
+    std::string &dst;
+public:
+    all(std::string &dst);
+};
+
+std::istream &operator >>(std::istream &is, all obj);
+
 struct invalid_input : public std::exception {};
 struct stream_error : public std::exception {};
 struct invalid_regex : public std::exception {};

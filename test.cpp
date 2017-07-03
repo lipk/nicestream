@@ -198,3 +198,14 @@ TEST_CASE("nstr::until", "[until]") {
         CHECK(str2 == ";");
     }
 }
+
+TEST_CASE("nstr::all", "[all]") {
+    {
+        std::string str1, str2;
+        sstr ss("abcabc defdef 123123 ...,,,,");
+        ss >> all(str1) >> str2;
+        CHECK(str1 == "abcabc defdef 123123 ...,,,,");
+        CHECK(str2 == "");
+        CHECK(ss.eof());
+    }
+}

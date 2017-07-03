@@ -82,4 +82,16 @@ std::istream &operator >>(std::istream &is, until obj) {
     }
     return is;
 }
+
+all::all(std::string &dst) : dst(dst) {}
+
+std::istream &operator >>(std::istream &is, all obj) {
+    char c = is.get();
+    while (is.good()) {
+        obj.dst.push_back(c);
+        c = is.get();
+    }
+    return is;
+}
+
 }
