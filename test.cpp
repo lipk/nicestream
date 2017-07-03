@@ -73,6 +73,28 @@ TEST_CASE("Regex parsing", "[regex]") {
     CHECK_THROWS_AS(sep("(a|c()"), invalid_regex);
 }
 
+TEST_CASE("nstr::sep", "[sep]") {
+    {
+        int i, j;
+        sstr ss("10,20");
+        ss >> i >> sep(",") >> j;
+        CHECK(i == 10);
+        CHECK(j == 20);
+    }
+    {
+        int i, j;
+        sstr ss("10,,,,,,20");
+        ss >> i >> sep(",+") >> j;
+        CHECK(i == 10);
+        CHECK(j == 20);
+    }
+    {
+        int i, j;
+        sstr ss("10;20");
+        CHECK_THROWS_AS(ss >> i >> sep(",") >> j, invalid_input);
+    }
+}
+
 TEST_CASE("nstr::skip", "[skip]") {
     {
         int i, j;
