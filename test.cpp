@@ -159,35 +159,41 @@ TEST_CASE("Match lengths", "[length]") {
 TEST_CASE("nstr::until", "[until]") {
     {
         std::string str1, str2;
-        sstr("aaa,bbb") >> until(",", str1) >> str2;
+        sstr ss("aaa,bbb");
+        ss >> until(",", str1) >> str2;
         CHECK(str1 == "aaa");
         CHECK(str2 == "bbb");
     }
     {
         std::string str1, str2;
-        sstr("aaa,   bbb") >> until(", *", str1) >> str2;
+        sstr ss("aaa,   bbb");
+        ss >> until(", *", str1) >> str2;
         CHECK(str1 == "aaa");
         CHECK(str2 == "bbb");
     }
     {
         std::string str1;
-        CHECK_THROWS_AS(sstr("aaa") >> until(";", str1), invalid_input);
+        sstr ss("aaa");
+        CHECK_THROWS_AS(ss >> until(";", str1), invalid_input);
     }
     {
         std::string str1, str2;
-        sstr("aaa,,,,,") >> until(",{1,2}", str1) >> str2;
+        sstr ss("aaa,,,,,");
+        ss >> until(",{1,2}", str1) >> str2;
         CHECK(str1 == "aaa");
         CHECK(str2 == ",,,");
     }
     {
         std::string str1, str2;
-        sstr("aaa") >> until("b*", str1) >> str2;
+        sstr ss("aaa");
+        ss >> until("b*", str1) >> str2;
         CHECK(str1 == "");
         CHECK(str2 == "aaa");
     }
     {
         std::string str1, str2;
-        sstr("aaa;;;;;") >> until("(;;)+", str1) >> str2;
+        sstr ss("aaa;;;;;");
+        ss >> until("(;;)+", str1) >> str2;
         CHECK(str1 == "aaa");
         CHECK(str2 == ";");
     }
