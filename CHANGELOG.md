@@ -1,5 +1,9 @@
 ## upcoming
 
+### Docs
+
+* Updated installation instructions in manual
+
 ## 0.0.3 (2017.07.03)
 
 ### Features

@@ -3,10 +3,9 @@
 ## Installation
 
 nicestream currently doesn't provide installer scripts, let alone binaries.
-Since it consists of a meagerly two files (nicestream.(c|h)pp), it's probably
-the best to just copy both of them into your own source tree, or pull it in via
-a git submodule. Building nicestream doesn't require anything beyond the good
-ol' STL and a C++11 capable compiler.
+However, it consists of only four files (nicestream and nfa cpp and hpp), so it
+shouldn't be too much hassle to just include the whole thing in your source
+tree. The only thing you need to build nicestream is a C++11 capable compiler.
 
 ### Running unit tests
 
