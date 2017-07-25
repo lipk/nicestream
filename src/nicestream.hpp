@@ -78,7 +78,6 @@ std::istream &operator >>(std::istream &is, split<ItemT> obj) {
     bool sep_matched = false;
     size_t match_len = 0, match_start = 0;
     while (true) {
-        std::cout << "!! " << buf << std::endl;
         if (is.eof()) {
             throw invalid_input();
         }
