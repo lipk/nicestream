@@ -75,6 +75,8 @@ str now contains the string "yadda yadda".
 
 Simply reads all data from the stream and puts it into a string. Example:
 
+    std::stringstream("this text will all be read into str") >> nstr::all(str);
+
 ## Under the hood
 
 nicestream constructs a nondeterministic finite automata for each regex-based
