@@ -231,3 +231,30 @@ TEST_CASE("nstr::all", "[all]") {
         CHECK(ss.eof());
     }
 }
+
+TEST_CASE("nstr::split", "[split]") {
+    {
+        std::vector<int> vec, refvec = {10, 20, 30};
+        sstr ss("10,20,30\n");
+        std::string rest;
+        ss >> split<int>(",", "\n", vec) >> rest;
+        CHECK(vec == refvec);
+        CHECK(rest == "");
+    }
+    {
+        std::vector<int> vec, refvec = {10, 20, 30};
+        sstr ss("10,,,,20,,30;;;");
+        std::string rest;
+        ss >> split<int>(",+", ";+", vec) >> rest;
+        CHECK(vec == refvec);
+        CHECK(rest == "");
+    }
+    {
+        std::vector<int> vec, refvec = {10, 20, 30};
+        sstr ss("10,;20,;;30,;;,");
+        std::string rest;
+        ss >> split<int>(",;*", ",;;,", vec) >> rest;
+        CHECK(vec == refvec);
+        CHECK(rest == "");
+    }
+}

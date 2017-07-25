@@ -338,6 +338,11 @@ match_state nfa_executor::match() const {
     return result;
 }
 
+void nfa_executor::reset() {
+    this->current.clear();
+    this->start_path();
+}
+
 size_t nfa_executor::longest_match() const {
     size_t result = 1;
     for (size_t i = this->current.size(); i>0; --i) {
