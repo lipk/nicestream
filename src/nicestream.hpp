@@ -68,6 +68,16 @@ public:
             std::vector<ItemT> &dst);
 };
 
+
+template<typename T>
+void read_from_string(std::string &&src, T &obj) {
+    std::stringstream ss(src);
+    ss >> obj;
+}
+
+template<>
+void read_from_string(std::string &&src, std::string &obj);
+
 template<typename ItemT>
 split<ItemT>::split(const std::string &seprx, const std::string &finrx, std::vector<ItemT> &dst)
     : dst(dst), nfa_sep(seprx), nfa_fin(finrx) {}
@@ -105,8 +115,7 @@ std::istream &operator >>(std::istream &is, split<ItemT> obj) {
             }
             buf.resize(buf.size()-match_len);
             obj.dst.emplace_back();
-            std::stringstream ss(std::move(buf));
-            ss >> obj.dst.back();
+            read_from_string(std::move(buf), obj.dst.back());
             obj.nfa_sep.reset();
             obj.nfa_fin.reset();
             sep_matched = false;
@@ -131,8 +140,7 @@ std::istream &operator >>(std::istream &is, split<ItemT> obj) {
     }
     buf.resize(buf.size()-match_len);
     obj.dst.emplace_back();
-    std::stringstream ss(std::move(buf));
-    ss >> obj.dst.back();
+    read_from_string(std::move(buf), obj.dst.back());
     return is;
 }
 }

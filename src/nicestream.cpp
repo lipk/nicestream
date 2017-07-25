@@ -94,4 +94,9 @@ std::istream &operator >>(std::istream &is, all obj) {
     return is;
 }
 
+template<>
+void read_from_string(std::string &&src, std::string &obj) {
+    obj = std::move(src);
+}
+
 }

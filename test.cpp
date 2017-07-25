@@ -257,4 +257,13 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(vec == refvec);
         CHECK(rest == "");
     }
+    {
+        std::vector<std::string> vec,
+            refvec = {"aa bb", "cc dd"};
+        sstr ss("aa bb,cc dd\n");
+        std::string rest;
+        ss >> split<std::string>(",", "\n", vec) >> rest;
+        CHECK(vec == refvec);
+        CHECK(rest == "");
+    }
 }
