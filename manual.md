@@ -77,6 +77,25 @@ Simply reads all data from the stream and puts it into a string. Example:
 
     std::stringstream("this text will all be read into str") >> nstr::all(str);
 
+### nstr::split
+
+split can be used to read a series of values, separated and terminated by some regular expressions,
+into a container. A simple example with ints:
+
+    std::vector<int> vec;
+    std::stringstream("1,2,3,4\n") >> nstr::split(",", "\n", vec);
+
+It does not clear the target so any values already in the container will remain unchanged. Adding
+elements is done via an std::inserter at end(), so for sequential containers, items will be
+appended.
+
+Conversion from string to the target type is done via a stringstream, except for strings, which are
+just passed along verbatim:
+
+    std::stringstream("a a,b b;") >> nstr::split(",", ";", strvec);
+
+...will read two items, "a a" and "b b".
+
 ## Under the hood
 
 nicestream constructs a nondeterministic finite automata for each regex-based
