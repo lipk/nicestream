@@ -20,4 +20,6 @@ script:
   # Check versions of gcc, g++
   - gcc -v && g++ -v
   # Run your build commands next
-  - make test
+  - cmake .
+  - make
+  - ./nice_test
