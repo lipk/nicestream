@@ -9,8 +9,8 @@ tree. The only thing you need to build nicestream is a C++11 capable compiler.
 
 ### Running unit tests
 
-Pull the catch submodule and type 'make test' in a terminal. This builds and
-also launches all the unit tests. Catch compiles quite slowly, be patient.
+Pull the catch submodule and type 'cmake . && make' in a terminal to build the
+unit tests. You can then run them with './nice_tests'. 
 
 ## Usage
 
