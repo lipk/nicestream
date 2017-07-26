@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <iterator>
 #include "nfa.hpp"
 
 namespace nstr {
@@ -56,34 +57,33 @@ public:
 
 std::istream &operator >>(std::istream &is, all obj);
 
-template<typename ItemT>
-class split {
-    template <typename T>
-    friend std::istream &operator >>(std::istream&, split<T>);
-    std::vector<ItemT> &dst;
-    nstr_private::nfa_executor nfa_sep;
-    nstr_private::nfa_executor nfa_fin;
-public:
-    split(const std::string &seprx, const std::string &finrx, 
-            std::vector<ItemT> &dst);
-};
-
-
 template<typename T>
 void read_from_string(std::string &&src, T &obj) {
     std::stringstream ss(src);
     ss >> obj;
 }
 
+template<typename ContT>
+class split_t {
+    template <typename T>
+    friend std::istream &operator >>(std::istream&, split_t<T>);
+    ContT &dst;
+    nstr_private::nfa_executor nfa_sep;
+    nstr_private::nfa_executor nfa_fin;
+public:
+    split_t(const std::string &seprx, const std::string &finrx, 
+            ContT &dst);
+};
+
 template<>
 void read_from_string(std::string &&src, std::string &obj);
 
-template<typename ItemT>
-split<ItemT>::split(const std::string &seprx, const std::string &finrx, std::vector<ItemT> &dst)
+template<typename ContT>
+split_t<ContT>::split_t(const std::string &seprx, const std::string &finrx, ContT &dst)
     : dst(dst), nfa_sep(seprx), nfa_fin(finrx) {}
 
-template<typename ItemT>
-std::istream &operator >>(std::istream &is, split<ItemT> obj) {
+template<typename ContT>
+std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
     std::string buf;
     bool sep_matched = false;
     size_t match_len = 0, match_start = 0;
@@ -114,8 +114,9 @@ std::istream &operator >>(std::istream &is, split<ItemT> obj) {
                 buf.pop_back();
             }
             buf.resize(buf.size()-match_len);
-            obj.dst.emplace_back();
-            read_from_string(std::move(buf), obj.dst.back());
+            typename ContT::value_type val;
+            read_from_string(std::move(buf), val);
+            std::fill_n(std::inserter(obj.dst, obj.dst.end()), 1, val);
             obj.nfa_sep.reset();
             obj.nfa_fin.reset();
             sep_matched = false;
@@ -139,9 +140,15 @@ std::istream &operator >>(std::istream &is, split<ItemT> obj) {
         buf.pop_back();
     }
     buf.resize(buf.size()-match_len);
-    obj.dst.emplace_back();
-    read_from_string(std::move(buf), obj.dst.back());
+    typename ContT::value_type val;
+    read_from_string(std::move(buf), val);
+    std::fill_n(std::inserter(obj.dst, obj.dst.end()), 1, val);
     return is;
+}
+
+template<typename ContT>
+split_t<ContT> split(const std::string &seprx, const std::string &finrx, ContT& dst) {
+    return split_t<ContT>(seprx, finrx, dst);
 }
 }
 #endif

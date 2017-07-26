@@ -2,6 +2,8 @@
 #include <catch.hpp>
 #include <string>
 #include <sstream>
+#include <list>
+#include <set>
 
 #include "src/nicestream.hpp"
 #include "src/nfa.hpp"
@@ -237,7 +239,7 @@ TEST_CASE("nstr::split", "[split]") {
         std::vector<int> vec, refvec = {10, 20, 30};
         sstr ss("10,20,30\n");
         std::string rest;
-        ss >> split<int>(",", "\n", vec) >> rest;
+        ss >> split(",", "\n", vec) >> rest;
         CHECK(vec == refvec);
         CHECK(rest == "");
     }
@@ -245,7 +247,7 @@ TEST_CASE("nstr::split", "[split]") {
         std::vector<int> vec, refvec = {10, 20, 30};
         sstr ss("10,,,,20,,30;;;");
         std::string rest;
-        ss >> split<int>(",+", ";+", vec) >> rest;
+        ss >> split(",+", ";+", vec) >> rest;
         CHECK(vec == refvec);
         CHECK(rest == "");
     }
@@ -253,7 +255,7 @@ TEST_CASE("nstr::split", "[split]") {
         std::vector<int> vec, refvec = {10, 20, 30};
         sstr ss("10,;20,;;30,;;,");
         std::string rest;
-        ss >> split<int>(",;*", ",;;,", vec) >> rest;
+        ss >> split(",;*", ",;;,", vec) >> rest;
         CHECK(vec == refvec);
         CHECK(rest == "");
     }
@@ -262,8 +264,24 @@ TEST_CASE("nstr::split", "[split]") {
             refvec = {"aa bb", "cc dd"};
         sstr ss("aa bb,cc dd\n");
         std::string rest;
-        ss >> split<std::string>(",", "\n", vec) >> rest;
+        ss >> split(",", "\n", vec) >> rest;
         CHECK(vec == refvec);
+        CHECK(rest == "");
+    }
+    {
+        std::list<int> ls, refls = {10, 20, 30};
+        sstr ss("10,20,30\n");
+        std::string rest;
+        ss >> split(",", "\n", ls) >> rest;
+        CHECK(ls == refls);
+        CHECK(rest == "");
+    }
+    {
+        std::set<int> st, refst = {10, 20, 30};
+        sstr ss("10,20,30\n");
+        std::string rest;
+        ss >> split(",", "\n", st) >> rest;
+        CHECK(st == refst);
         CHECK(rest == "");
     }
 }

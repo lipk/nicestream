@@ -1,5 +1,9 @@
 ## upcoming
 
+### Features
+
+* split
+
 ### Docs
 
 * Updated installation instructions in manual
