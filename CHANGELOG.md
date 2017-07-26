@@ -3,6 +3,11 @@
 ### Features
 
 * split
+* Change build system to CMake
+
+### Fixes
+
+* Unit tests recompile faster
 
 ### Docs
 
