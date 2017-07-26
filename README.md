@@ -25,7 +25,7 @@ nstr::until instead of getline:
 
     std::cin >> until("[^\\]>", str);
 
-For details, see the [manual](manual.md).
+For details, see the [manual](MANUAL.md).
 
 ## Limitations
 
