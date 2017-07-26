@@ -8,6 +8,3 @@ test:
 
 test-build-only:
 	$(CXX) $(CXXFLAGS) $(FILES) test.cpp -Icatch/include -g -o nice_test
-
-demo:
-	$(CXX) $(CXXFLAGS) $(FILES) demo.cpp -o nice_demo
