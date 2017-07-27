@@ -1,5 +1,9 @@
 ## upcoming
 
+### Features
+
+* join
+
 ### Fixes
 
 * split throws an exception if an item could not be converted
