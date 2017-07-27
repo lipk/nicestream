@@ -50,6 +50,9 @@ std::istream& operator >>(std::istream& is, skip<>) {
 until::until(const std::string &regex, std::string &dst) 
     : nfa(regex), dst(dst) {}
 
+until::until(const std::string &regex) 
+    : nfa(regex), dst(this->dummy) {}
+
 std::istream &operator >>(std::istream &is, until obj) {
     while (obj.nfa.match() != match_state::ACCEPT) {
         if (is.eof()) {

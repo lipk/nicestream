@@ -42,8 +42,10 @@ class until {
     friend std::istream& operator >>(std::istream&, until);
     nstr_private::nfa_executor nfa;
     std::string &dst;
+    std::string dummy;
 public:
     until(const std::string& regex, std::string &dst);
+    until(const std::string& regex);
 };
 
 std::istream &operator >>(std::istream &is, until obj);
