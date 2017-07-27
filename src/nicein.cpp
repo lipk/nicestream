@@ -1,4 +1,4 @@
-#include "nicestream.hpp"
+#include "nicein.hpp"
 #include <cstdint>
 #include <string>
 #include <map>

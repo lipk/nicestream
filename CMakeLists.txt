@@ -3,12 +3,12 @@ PROJECT(nicestream)
 
 INCLUDE_DIRECTORIES(catch/include src)
 SET(CMAKE_CXX_STANDARD 11)
-SET(SOURCES test_cases.cpp test_main.cpp src/nicestream.cpp src/nfa.cpp src/nicestream.hpp src/nfa.hpp)
 
 SET(NICE_SOURCES
     src/nfa.cpp
     src/nfa.hpp
-    src/nicestream.cpp
+    src/nicein.cpp
+    src/nicein.hpp
     src/nicestream.hpp)
 
 SET(TEST_SOURCES
