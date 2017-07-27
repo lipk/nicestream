@@ -23,7 +23,11 @@ Specify field separators with regular expressions:
 
 nstr::until instead of getline:
 
-    std::cin >> until("[^\\]>", str);
+    std::cin >> nstr::until("[^\\]>", str);
+
+Read sequences easily, into any container you fancy:
+
+    std::cin >> nstr::split(";", "\n", some_container);
 
 For details, see the [manual](MANUAL.md).
 
