@@ -1,5 +1,13 @@
 ## upcoming
 
+### Fixes
+
+* split throws an exception if an item could not be converted
+
+### Docs
+
+* Updated the section about split in manual
+
 ## 0.0.4 (2017.07.26)
 
 ### Features

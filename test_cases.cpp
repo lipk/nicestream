@@ -283,4 +283,9 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(st == refst);
         CHECK(rest == "");
     }
+    {
+        std::vector<int> vec;
+        sstr ss("10x,20;");
+        CHECK_THROWS_AS(ss >> split(",", ";", vec), invalid_input);
+    }
 }

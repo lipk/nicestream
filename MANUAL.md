@@ -79,18 +79,22 @@ Simply reads all data from the stream and puts it into a string. Example:
 
 ### nstr::split
 
-split can be used to read a series of values, separated and terminated by some regular expressions,
-into a container. A simple example with ints:
+split can be used to read a series of values, separated and terminated by some
+regular expressions, into a container. A simple example with ints:
 
     std::vector<int> vec;
     std::stringstream("1,2,3,4\n") >> nstr::split(",", "\n", vec);
 
-It does not clear the target so any values already in the container will remain unchanged. Adding
-elements is done via an std::inserter at end(), so for sequential containers, items will be
-appended.
+It does not clear the target so any values already in the container will remain
+unchanged. Adding elements is done via an std::inserter at end(), so for
+sequential containers, items will be appended.
 
-Conversion from string to the target type is done via a stringstream, except for strings, which are
-just passed along verbatim:
+Conversion is done by putting the string chunk between the separators into a
+stringstream and then streaming into the target item. The string must be fully
+consumed, else an invalid_input exception is thrown.
+
+The only exception from this rule is std::string, where the items are simply the
+chunks between the separators, without any conversion. So:
 
     std::stringstream("a a,b b;") >> nstr::split(",", ";", strvec);
 

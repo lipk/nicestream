@@ -61,7 +61,14 @@ template<typename T>
 void read_from_string(std::string &&src, T &obj) {
     std::stringstream ss(src);
     ss >> obj;
+    ss.get();
+    if (!ss.eof()) {
+        throw invalid_input();
+    }
 }
+
+template<>
+void read_from_string(std::string &&src, std::string &obj);
 
 template<typename ContT>
 class split_t {
@@ -74,9 +81,6 @@ public:
     split_t(const std::string &seprx, const std::string &finrx, 
             ContT &dst);
 };
-
-template<>
-void read_from_string(std::string &&src, std::string &obj);
 
 template<typename ContT>
 split_t<ContT>::split_t(const std::string &seprx, const std::string &finrx, ContT &dst)
