@@ -4,8 +4,8 @@
 #include <list>
 #include <set>
 
-#include "src/nicestream.hpp"
-#include "src/nfa.hpp"
+#include <nicestream.hpp>
+#include <nfa.hpp>
 
 using namespace nstr;
 using namespace nstr_private;

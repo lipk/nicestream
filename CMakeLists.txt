@@ -12,8 +12,8 @@ SET(NICE_SOURCES
     src/nicestream.hpp)
 
 SET(TEST_SOURCES
-    input_tests.cpp
-    output_tests.cpp
-    test_main.cpp)
+    test/input_tests.cpp
+    test/output_tests.cpp
+    test/test_main.cpp)
 
 ADD_EXECUTABLE(nice_test ${NICE_SOURCES} ${TEST_SOURCES})

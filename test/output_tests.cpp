@@ -1,7 +1,7 @@
 #include <catch.hpp>
 #include <sstream>
 
-#include "src/nicestream.hpp"
+#include <nicestream.hpp>
 
 using namespace nstr;
 
