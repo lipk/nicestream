@@ -13,18 +13,7 @@ struct invalid_input : public std::exception {};
 struct stream_error : public std::exception {};
 struct invalid_regex : public std::exception {};
 
-class sep {
-    friend std::istream& operator >>(std::istream&, sep);
-    nstr_private::nfa_executor executor;
-public:
-    sep(const std::string& regex);
-    sep(const sep&);
-    sep(const sep&&);
-    sep& operator =(const sep&);
-    sep& operator =(sep&&);
-};
 
-std::istream& operator >>(std::istream& is, sep field);
 
 template<typename ...Fields>
 class skip {};
@@ -50,18 +39,9 @@ public:
 
 std::istream &operator >>(std::istream &is, until obj);
 
-class all {
-    friend std::istream& operator >>(std::istream&, all);
-    std::string &dst;
-public:
-    all(std::string &dst);
-};
-
-std::istream &operator >>(std::istream &is, all obj);
-
 template<typename T>
 void read_from_string(std::string &&src, T &obj) {
-    std::stringstream ss(src);
+    std::stringstream ss(std::move(src));
     ss >> obj;
     ss.get();
     if (!ss.eof()) {
@@ -71,6 +51,77 @@ void read_from_string(std::string &&src, T &obj) {
 
 template<>
 void read_from_string(std::string &&src, std::string &obj);
+
+template<typename T>
+class regex_t {
+    template <typename S>
+    friend std::istream& operator >>(std::istream&, regex_t<S>);
+    nstr_private::nfa_executor nfa;
+    T &dst;
+public:
+    regex_t(const std::string& rx, T& dst);
+};
+
+template<typename T>
+regex_t<T>::regex_t(const std::string& rx, T& dst) : nfa(rx), dst(dst) {}
+
+template<typename T>
+regex_t<T> regex(const std::string& rx, T& dst) {
+    return regex_t<T>(rx, dst);
+}
+
+template<typename T>
+std::istream &operator >>(std::istream &is, regex_t<T> what) {
+    bool is_valid = what.nfa.match() == nstr_private::match_state::ACCEPT;
+    std::string buf, res;
+    while (true) {
+        uint8_t next = static_cast<uint8_t>(is.get());
+        if (is.eof()) {
+            is.clear();
+            break;
+        }
+        buf.push_back(next);
+        what.nfa.next(next);
+        if (what.nfa.match() == nstr_private::match_state::ACCEPT) {
+            is_valid = true;
+            res.insert(res.end(), buf.begin(), buf.end());
+            buf.clear();
+        } else if (what.nfa.match() == nstr_private::match_state::REFUSE) {
+            break;
+        }
+    }
+    for (size_t i = buf.size(); i>0; --i) {
+        is.putback(buf[i-1]);
+    }
+    if (!is_valid) {
+        throw invalid_input();
+    }
+    read_from_string(std::move(res), what.dst);
+    return is;
+}
+
+class sep {
+    friend std::istream& operator >>(std::istream&, sep);
+    std::string dummy;
+    regex_t<std::string> rx;
+public:
+    sep(const std::string& regex);
+    sep(const sep&);
+    sep(const sep&&);
+    sep& operator =(const sep&);
+    sep& operator =(sep&&);
+};
+
+std::istream& operator >>(std::istream& is, sep field);
+
+class all {
+    friend std::istream& operator >>(std::istream&, all);
+    std::string &dst;
+public:
+    all(std::string &dst);
+};
+
+std::istream &operator >>(std::istream &is, all obj);
 
 template<typename ContT>
 class split_t {
