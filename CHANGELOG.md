@@ -14,6 +14,7 @@
 
 * Updated the section about split in manual
 * Updated readme with split example
+* Added join and pattn to manual
 
 ## 0.0.4 (2017.07.26)
 

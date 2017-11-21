@@ -3,9 +3,9 @@
 ## Installation
 
 nicestream currently doesn't provide installer scripts, let alone binaries.
-However, it consists of only four files (nicestream and nfa cpp and hpp), so it
-shouldn't be too much hassle to just include the whole thing in your source
-tree. The only thing you need to build nicestream is a C++11 capable compiler.
+However, it consists of only a few files, so it shouldn't be too much hassle to
+just include the whole thing in your source tree. The only thing you need to
+build nicestream is a C++11 capable compiler.
 
 ### Running unit tests
 
@@ -71,6 +71,25 @@ including the terminating sequence, into the string. Like this:
 
 str now contains the string "yadda yadda".
 
+### nstr::pattn
+
+pattn (abbreviated from 'pattern') is like until, but instead of a terminating
+regex, you should specify a regex that the input must match. pattn will stop
+reading when the input sequence no longer matches:
+
+    std::stringstream("no digits here8 oops there was one") >> nstr::pattn("[^0-9]", str);
+
+str will contain "no digits here". Another extra feature of pattn is that it can
+read into any kind of variable, not just strings, like:
+
+    int i;
+    std::stringstream("123456789") >> nstr::pattn("[1-4]", i);
+
+Is equivalent to reading "1234" into a stringstream and then reading from a
+stringstream into i. The converting stringstream must be empty at the end (i.e.
+the conversion must consume all the data), otherwise an exception will be
+thrown.
+
 ### nstr::all
 
 Simply reads all data from the stream and puts it into a string. Example:
@@ -100,8 +119,22 @@ chunks between the separators, without any conversion. So:
 
 ...will read two items, "a a" and "b b".
 
-## Under the hood
+### nstr::join
 
-nicestream constructs a nondeterministic finite automata for each regex-based
-class, so it definitely has some overhead. (Although if speed is a concern, you
-should probably avoid std::istream anyway).
+join is an odd ball in nicestream because it deals with output formatting
+instead of input. There are two ways to use join. One possibility is to provide
+a separator string and an iterator pair, STL style:
+
+    std::stringstream sstr;
+    std::vector<int> v = {2, 3, 5, 7, 11, 13};
+    sstr << join(", ", v.begin(), v.end());
+    // sstr.str() == "2, 3, 5, 7, 11, 13"
+
+Or you can provide just one parameter and let join call begin() and end() for
+you (which means, naturally, that anything you pass should have a begin and end
+method):
+
+    std::stringstream sstr;
+    std::vector<int> v = {2, 3, 5, 7, 11, 13};
+    sstr << join(", ", v);
+    // sstr.str() == "2, 3, 5, 7, 11, 13"
