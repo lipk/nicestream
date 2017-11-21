@@ -4,6 +4,7 @@
 
 * join
 * until's dst argument can be omitted to discard data
+* regex (as in read data until that matches a regex)
 
 ### Fixes
 
