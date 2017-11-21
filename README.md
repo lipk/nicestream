@@ -33,6 +33,5 @@ For details, see the [manual](MANUAL.md).
 
 ## Limitations
 
-The regex engine currently recognizes a limited subset of PCRE only.
-
-**nicestream** is in a very early stage of development, so expect bugs :)
+* The regex engine lacks some of the more fancy features.
+* Doesn't support any kind of multibyte encoding.
