@@ -96,19 +96,19 @@ TEST_CASE("nstr::sep", "[sep]") {
     }
 }
 
-TEST_CASE("nstr::regex", "[nregex]") {
+TEST_CASE("nstr::pattn", "[pattn]") {
     {
         int x;
         std::string str;
         sstr ss("103");
-        ss >> regex<int>("[10]*", x) >> str;
+        ss >> pattn<int>("[10]*", x) >> str;
         CHECK(x == 10);
         CHECK(str == "3");
     }
     {
         std::string x, str;
         sstr ss("103");
-        ss >> regex<std::string>("[10]*", x) >> str;
+        ss >> pattn<std::string>("[10]*", x) >> str;
         CHECK(x == "10");
         CHECK(str == "3");
     }

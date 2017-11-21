@@ -53,25 +53,25 @@ template<>
 void read_from_string(std::string &&src, std::string &obj);
 
 template<typename T>
-class regex_t {
+class pattn_t {
     template <typename S>
-    friend std::istream& operator >>(std::istream&, regex_t<S>);
+    friend std::istream& operator >>(std::istream&, pattn_t<S>);
     nstr_private::nfa_executor nfa;
     T &dst;
 public:
-    regex_t(const std::string& rx, T& dst);
+    pattn_t(const std::string& rx, T& dst);
 };
 
 template<typename T>
-regex_t<T>::regex_t(const std::string& rx, T& dst) : nfa(rx), dst(dst) {}
+pattn_t<T>::pattn_t(const std::string& rx, T& dst) : nfa(rx), dst(dst) {}
 
 template<typename T>
-regex_t<T> regex(const std::string& rx, T& dst) {
-    return regex_t<T>(rx, dst);
+pattn_t<T> pattn(const std::string& rx, T& dst) {
+    return pattn_t<T>(rx, dst);
 }
 
 template<typename T>
-std::istream &operator >>(std::istream &is, regex_t<T> what) {
+std::istream &operator >>(std::istream &is, pattn_t<T> what) {
     bool is_valid = what.nfa.match() == nstr_private::match_state::ACCEPT;
     std::string buf, res;
     while (true) {
@@ -103,7 +103,7 @@ std::istream &operator >>(std::istream &is, regex_t<T> what) {
 class sep {
     friend std::istream& operator >>(std::istream&, sep);
     std::string dummy;
-    regex_t<std::string> rx;
+    pattn_t<std::string> rx;
 public:
     sep(const std::string& regex);
     sep(const sep&);
