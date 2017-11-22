@@ -17,3 +17,6 @@ SET(TEST_SOURCES
     test/test_main.cpp)
 
 ADD_EXECUTABLE(nice_test ${NICE_SOURCES} ${TEST_SOURCES})
+
+ADD_CUSTOM_TARGET(format COMMAND
+    clang-format -style=file -i ${NICE_SOURCES} ${TEST_SOURCES})
