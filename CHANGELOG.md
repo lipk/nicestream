@@ -1,5 +1,9 @@
 ## upcoming
 
+### Features
+
+* Added .clang-format config file and format CMake target.
+
 ## 0.0.5 (2017.11.21)
 
 ### Features
