@@ -1,17 +1,18 @@
 #include <catch.hpp>
-#include <string>
-#include <sstream>
 #include <list>
 #include <set>
+#include <sstream>
+#include <string>
 
-#include <nicestream.hpp>
 #include <nfa.hpp>
+#include <nicestream.hpp>
 
 using namespace nstr;
 using namespace nstr_private;
 typedef std::stringstream sstr;
 
-TEST_CASE("Regex parsing", "[regex]") {
+TEST_CASE("Regex parsing", "[regex]")
+{
     // simple literals
     CHECK_NOTHROW(sep("abcdz!!--<>\n\t^^^"));
     CHECK_NOTHROW(sep("abc\\.\\*\\?\\+\\[\\"));
@@ -56,7 +57,7 @@ TEST_CASE("Regex parsing", "[regex]") {
     CHECK_NOTHROW(sep("[a\\-*\\][]"));
     CHECK_NOTHROW(sep("\\d\\D\\w\\W\\s\\S"));
     CHECK_NOTHROW(sep("[^a-z678]"));
-    CHECK_NOTHROW(sep("[]")); // FIXME: should this be accepted?
+    CHECK_NOTHROW(sep("[]"));  // FIXME: should this be accepted?
     CHECK_NOTHROW(sep("[^]")); // FIXME: should this be accepted?
     CHECK_THROWS_AS(sep("[a^b]"), invalid_regex);
     CHECK_THROWS_AS(sep("[a-b"), invalid_regex);
@@ -70,11 +71,13 @@ TEST_CASE("Regex parsing", "[regex]") {
     CHECK_NOTHROW(sep("((a(aa|)a|bbb)|zzzz)"));
     CHECK_NOTHROW(sep("(a|)"));
     CHECK_NOTHROW(sep("(a|\\|a)"));
-    CHECK_THROWS_AS(sep("(a|b|c)"), invalid_regex); // FIXME: maybe this isn't invalid
+    CHECK_THROWS_AS(sep("(a|b|c)"),
+                    invalid_regex); // FIXME: maybe this isn't invalid
     CHECK_THROWS_AS(sep("(a|c()"), invalid_regex);
 }
 
-TEST_CASE("nstr::sep", "[sep]") {
+TEST_CASE("nstr::sep", "[sep]")
+{
     {
         int i, j;
         sstr ss("10,20");
@@ -96,7 +99,8 @@ TEST_CASE("nstr::sep", "[sep]") {
     }
 }
 
-TEST_CASE("nstr::pattn", "[pattn]") {
+TEST_CASE("nstr::pattn", "[pattn]")
+{
     {
         int x;
         std::string str;
@@ -114,7 +118,8 @@ TEST_CASE("nstr::pattn", "[pattn]") {
     }
 }
 
-TEST_CASE("nstr::skip", "[skip]") {
+TEST_CASE("nstr::skip", "[skip]")
+{
     {
         int i, j;
         sstr("10 20 30 40") >> i >> skip<int, int>() >> j;
@@ -142,7 +147,8 @@ TEST_CASE("nstr::skip", "[skip]") {
     }
 }
 
-TEST_CASE("Match lengths", "[length]") {
+TEST_CASE("Match lengths", "[length]")
+{
     {
         nfa_executor e("a*");
         CHECK(e.match() == match_state::ACCEPT);
@@ -197,7 +203,8 @@ TEST_CASE("Match lengths", "[length]") {
     }
 }
 
-TEST_CASE("nstr::until", "[until]") {
+TEST_CASE("nstr::until", "[until]")
+{
     {
         std::string str1, str2;
         sstr ss("aaa,bbb");
@@ -240,7 +247,8 @@ TEST_CASE("nstr::until", "[until]") {
     }
 }
 
-TEST_CASE("nstr::all", "[all]") {
+TEST_CASE("nstr::all", "[all]")
+{
     {
         std::string str1, str2;
         sstr ss("abcabc defdef 123123 ...,,,,");
@@ -251,9 +259,10 @@ TEST_CASE("nstr::all", "[all]") {
     }
 }
 
-TEST_CASE("nstr::split", "[split]") {
+TEST_CASE("nstr::split", "[split]")
+{
     {
-        std::vector<int> vec, refvec = {10, 20, 30};
+        std::vector<int> vec, refvec = { 10, 20, 30 };
         sstr ss("10,20,30\n");
         std::string rest;
         ss >> split(",", "\n", vec) >> rest;
@@ -261,7 +270,7 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(rest == "");
     }
     {
-        std::vector<int> vec, refvec = {10, 20, 30};
+        std::vector<int> vec, refvec = { 10, 20, 30 };
         sstr ss("10,,,,20,,30;;;");
         std::string rest;
         ss >> split(",+", ";+", vec) >> rest;
@@ -269,7 +278,7 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(rest == "");
     }
     {
-        std::vector<int> vec, refvec = {10, 20, 30};
+        std::vector<int> vec, refvec = { 10, 20, 30 };
         sstr ss("10,;20,;;30,;;,");
         std::string rest;
         ss >> split(",;*", ",;;,", vec) >> rest;
@@ -277,8 +286,7 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(rest == "");
     }
     {
-        std::vector<std::string> vec,
-            refvec = {"aa bb", "cc dd"};
+        std::vector<std::string> vec, refvec = { "aa bb", "cc dd" };
         sstr ss("aa bb,cc dd\n");
         std::string rest;
         ss >> split(",", "\n", vec) >> rest;
@@ -286,7 +294,7 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(rest == "");
     }
     {
-        std::list<int> ls, refls = {10, 20, 30};
+        std::list<int> ls, refls = { 10, 20, 30 };
         sstr ss("10,20,30\n");
         std::string rest;
         ss >> split(",", "\n", ls) >> rest;
@@ -294,7 +302,7 @@ TEST_CASE("nstr::split", "[split]") {
         CHECK(rest == "");
     }
     {
-        std::set<int> st, refst = {10, 20, 30};
+        std::set<int> st, refst = { 10, 20, 30 };
         sstr ss("10,20,30\n");
         std::string rest;
         ss >> split(",", "\n", st) >> rest;

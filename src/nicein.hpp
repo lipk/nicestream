@@ -1,46 +1,57 @@
 #ifndef NICEIN_HPP_INCLUDED
 #define NICEIN_HPP_INCLUDED
 
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iterator>
 #include "nfa.hpp"
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
 
 namespace nstr {
 
-struct invalid_input : public std::exception {};
-struct stream_error : public std::exception {};
-struct invalid_regex : public std::exception {};
+struct invalid_input : public std::exception
+{};
+struct stream_error : public std::exception
+{};
+struct invalid_regex : public std::exception
+{};
 
+template<typename... Fields>
+class skip
+{
+};
 
-
-template<typename ...Fields>
-class skip {};
-
-template<typename First, typename ...Rest>
-std::istream& operator >>(std::istream& is, skip<First, Rest...>) {
+template<typename First, typename... Rest>
+std::istream&
+operator>>(std::istream& is, skip<First, Rest...>)
+{
     First f;
     is >> f;
     return is >> skip<Rest...>();
 }
 
-std::istream& operator >>(std::istream& is, skip<>);
+std::istream&
+operator>>(std::istream& is, skip<>);
 
-class until {
-    friend std::istream& operator >>(std::istream&, until);
+class until
+{
+    friend std::istream& operator>>(std::istream&, until);
     nstr_private::nfa_executor nfa;
-    std::string &dst;
+    std::string& dst;
     std::string dummy;
-public:
-    until(const std::string& regex, std::string &dst);
+
+  public:
+    until(const std::string& regex, std::string& dst);
     until(const std::string& regex);
 };
 
-std::istream &operator >>(std::istream &is, until obj);
+std::istream&
+operator>>(std::istream& is, until obj);
 
 template<typename T>
-void read_from_string(std::string &&src, T &obj) {
+void
+read_from_string(std::string&& src, T& obj)
+{
     std::stringstream ss(std::move(src));
     ss >> obj;
     ss.get();
@@ -50,28 +61,38 @@ void read_from_string(std::string &&src, T &obj) {
 }
 
 template<>
-void read_from_string(std::string &&src, std::string &obj);
+void
+read_from_string(std::string&& src, std::string& obj);
 
 template<typename T>
-class pattn_t {
-    template <typename S>
-    friend std::istream& operator >>(std::istream&, pattn_t<S>);
+class pattn_t
+{
+    template<typename S>
+    friend std::istream& operator>>(std::istream&, pattn_t<S>);
     nstr_private::nfa_executor nfa;
-    T &dst;
-public:
+    T& dst;
+
+  public:
     pattn_t(const std::string& rx, T& dst);
 };
 
 template<typename T>
-pattn_t<T>::pattn_t(const std::string& rx, T& dst) : nfa(rx), dst(dst) {}
+pattn_t<T>::pattn_t(const std::string& rx, T& dst)
+    : nfa(rx)
+    , dst(dst)
+{}
 
 template<typename T>
-pattn_t<T> pattn(const std::string& rx, T& dst) {
+pattn_t<T>
+pattn(const std::string& rx, T& dst)
+{
     return pattn_t<T>(rx, dst);
 }
 
 template<typename T>
-std::istream &operator >>(std::istream &is, pattn_t<T> what) {
+std::istream&
+operator>>(std::istream& is, pattn_t<T> what)
+{
     bool is_valid = what.nfa.match() == nstr_private::match_state::ACCEPT;
     std::string buf, res;
     while (true) {
@@ -90,8 +111,8 @@ std::istream &operator >>(std::istream &is, pattn_t<T> what) {
             break;
         }
     }
-    for (size_t i = buf.size(); i>0; --i) {
-        is.putback(buf[i-1]);
+    for (size_t i = buf.size(); i > 0; --i) {
+        is.putback(buf[i - 1]);
     }
     if (!is_valid) {
         throw invalid_input();
@@ -100,47 +121,61 @@ std::istream &operator >>(std::istream &is, pattn_t<T> what) {
     return is;
 }
 
-class sep {
-    friend std::istream& operator >>(std::istream&, sep);
+class sep
+{
+    friend std::istream& operator>>(std::istream&, sep);
     std::string dummy;
     pattn_t<std::string> rx;
-public:
+
+  public:
     sep(const std::string& regex);
     sep(const sep&);
     sep(const sep&&);
-    sep& operator =(const sep&);
-    sep& operator =(sep&&);
+    sep& operator=(const sep&);
+    sep& operator=(sep&&);
 };
 
-std::istream& operator >>(std::istream& is, sep field);
+std::istream&
+operator>>(std::istream& is, sep field);
 
-class all {
-    friend std::istream& operator >>(std::istream&, all);
-    std::string &dst;
-public:
-    all(std::string &dst);
+class all
+{
+    friend std::istream& operator>>(std::istream&, all);
+    std::string& dst;
+
+  public:
+    all(std::string& dst);
 };
 
-std::istream &operator >>(std::istream &is, all obj);
+std::istream&
+operator>>(std::istream& is, all obj);
 
 template<typename ContT>
-class split_t {
-    template <typename T>
-    friend std::istream &operator >>(std::istream&, split_t<T>);
-    ContT &dst;
+class split_t
+{
+    template<typename T>
+    friend std::istream& operator>>(std::istream&, split_t<T>);
+    ContT& dst;
     nstr_private::nfa_executor nfa_sep;
     nstr_private::nfa_executor nfa_fin;
-public:
-    split_t(const std::string &seprx, const std::string &finrx, 
-            ContT &dst);
+
+  public:
+    split_t(const std::string& seprx, const std::string& finrx, ContT& dst);
 };
 
 template<typename ContT>
-split_t<ContT>::split_t(const std::string &seprx, const std::string &finrx, ContT &dst)
-    : dst(dst), nfa_sep(seprx), nfa_fin(finrx) {}
+split_t<ContT>::split_t(const std::string& seprx,
+                        const std::string& finrx,
+                        ContT& dst)
+    : dst(dst)
+    , nfa_sep(seprx)
+    , nfa_fin(finrx)
+{}
 
 template<typename ContT>
-std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
+std::istream&
+operator>>(std::istream& is, split_t<ContT> obj)
+{
     std::string buf;
     bool sep_matched = false;
     size_t match_len = 0, match_start = 0;
@@ -161,16 +196,18 @@ std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
         if (obj.nfa_fin.match() == nstr_private::match_state::ACCEPT) {
             break;
         }
-        if (!sep_matched && obj.nfa_sep.match() == nstr_private::match_state::ACCEPT) {
+        if (!sep_matched &&
+            obj.nfa_sep.match() == nstr_private::match_state::ACCEPT) {
             sep_matched = true;
             match_len = obj.nfa_sep.trim_short_matches();
             match_start = buf.size() - match_len;
-        } else if (sep_matched && obj.nfa_sep.match() == nstr_private::match_state::REFUSE) {
-            for (size_t i = buf.size(); i>match_start+match_len; --i) {
+        } else if (sep_matched &&
+                   obj.nfa_sep.match() == nstr_private::match_state::REFUSE) {
+            for (size_t i = buf.size(); i > match_start + match_len; --i) {
                 is.putback(buf.back());
                 buf.pop_back();
             }
-            buf.resize(buf.size()-match_len);
+            buf.resize(buf.size() - match_len);
             typename ContT::value_type val;
             read_from_string(std::move(buf), val);
             std::fill_n(std::inserter(obj.dst, obj.dst.end()), 1, val);
@@ -183,7 +220,7 @@ std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
     }
 
     match_len = obj.nfa_fin.trim_short_matches();
-    match_start = buf.size()-match_len;
+    match_start = buf.size() - match_len;
     while (obj.nfa_fin.match() != nstr_private::match_state::REFUSE) {
         uint8_t sym = is.get();
         obj.nfa_fin.next(sym);
@@ -192,11 +229,11 @@ std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
             match_len = obj.nfa_fin.longest_match();
         }
     }
-    for (size_t i = buf.size(); i>match_start+match_len; --i) {
+    for (size_t i = buf.size(); i > match_start + match_len; --i) {
         is.putback(buf.back());
         buf.pop_back();
     }
-    buf.resize(buf.size()-match_len);
+    buf.resize(buf.size() - match_len);
     typename ContT::value_type val;
     read_from_string(std::move(buf), val);
     std::fill_n(std::inserter(obj.dst, obj.dst.end()), 1, val);
@@ -204,9 +241,10 @@ std::istream &operator >>(std::istream &is, split_t<ContT> obj) {
 }
 
 template<typename ContT>
-split_t<ContT> split(const std::string &seprx, const std::string &finrx, ContT& dst) {
+split_t<ContT>
+split(const std::string& seprx, const std::string& finrx, ContT& dst)
+{
     return split_t<ContT>(seprx, finrx, dst);
 }
 }
 #endif
-

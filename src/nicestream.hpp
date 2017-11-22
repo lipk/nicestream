@@ -5,4 +5,3 @@
 #include "niceout.hpp"
 
 #endif
-

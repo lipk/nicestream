@@ -1,9 +1,9 @@
 #include "nicein.hpp"
-#include <cstdint>
-#include <string>
-#include <map>
-#include <vector>
 #include <cctype>
+#include <cstdint>
+#include <map>
+#include <string>
+#include <vector>
 
 using namespace nstr_private;
 
@@ -12,25 +12,35 @@ namespace nstr {
 // STREAM STUFF
 // *************************************************************
 
-sep::sep(const std::string& regex) : rx(regex, dummy)
-{
-}
+sep::sep(const std::string& regex)
+    : rx(regex, dummy)
+{}
 
-std::istream &operator >>(std::istream &is, sep what) {
+std::istream&
+operator>>(std::istream& is, sep what)
+{
     return is >> what.rx;
 }
 
-std::istream& operator >>(std::istream& is, skip<>) {
+std::istream&
+operator>>(std::istream& is, skip<>)
+{
     return is;
 }
 
-until::until(const std::string &regex, std::string &dst) 
-    : nfa(regex), dst(dst) {}
+until::until(const std::string& regex, std::string& dst)
+    : nfa(regex)
+    , dst(dst)
+{}
 
-until::until(const std::string &regex) 
-    : nfa(regex), dst(this->dummy) {}
+until::until(const std::string& regex)
+    : nfa(regex)
+    , dst(this->dummy)
+{}
 
-std::istream &operator >>(std::istream &is, until obj) {
+std::istream&
+operator>>(std::istream& is, until obj)
+{
     while (obj.nfa.match() != match_state::ACCEPT) {
         if (is.eof()) {
             throw invalid_input();
@@ -57,15 +67,19 @@ std::istream &operator >>(std::istream &is, until obj) {
             break;
         }
     }
-    for (size_t i = buf.size(); i>0; --i) {
-        is.putback(buf[i-1]);
+    for (size_t i = buf.size(); i > 0; --i) {
+        is.putback(buf[i - 1]);
     }
     return is;
 }
 
-all::all(std::string &dst) : dst(dst) {}
+all::all(std::string& dst)
+    : dst(dst)
+{}
 
-std::istream &operator >>(std::istream &is, all obj) {
+std::istream&
+operator>>(std::istream& is, all obj)
+{
     char c = is.get();
     while (is.good()) {
         obj.dst.push_back(c);
@@ -75,8 +89,9 @@ std::istream &operator >>(std::istream &is, all obj) {
 }
 
 template<>
-void read_from_string(std::string &&src, std::string &obj) {
+void
+read_from_string(std::string&& src, std::string& obj)
+{
     obj = std::move(src);
 }
-
 }
