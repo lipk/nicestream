@@ -2,13 +2,15 @@
 #define NFA_HPP_INCLUDED
 
 #include <cstdint>
-#include <map>
+#include <string>
 #include <vector>
 
 // ***************************************************************
 // NFA CONSTRUCTION & EXECUTION
 // ***************************************************************
 namespace nstr_private {
+
+typedef uint8_t symbol_t;
 
 enum class match_state
 {
@@ -17,13 +19,55 @@ enum class match_state
     REFUSE = 2
 };
 
+enum class trans_t
+{
+    EXACT,
+    NOT_EXACT,
+    RANGE,
+    NOT_RANGE,
+    CLASS,
+    NOT_CLASS
+};
+
+enum class class_id_t
+{
+    WORD,
+    DIGIT,
+    SPACE,
+    PUNCT
+};
+
+struct trans
+{
+    trans_t type;
+
+    struct bounds_t
+    {
+        symbol_t from, to;
+    };
+
+    static trans exact(symbol_t sym);
+    static trans not_exact(symbol_t sym);
+    static trans range(symbol_t from, symbol_t to);
+    static trans not_range(symbol_t from, symbol_t to);
+    static trans char_class(class_id_t class_id);
+    static trans not_char_class(class_id_t class_id);
+
+    union
+    {
+        bounds_t bounds;
+        symbol_t symbol;
+        class_id_t class_id;
+    };
+};
+
 struct nfa_state
 {
-    std::map<uint8_t, std::vector<int>> transitions;
+    std::vector<std::pair<trans, std::vector<int>>> transitions;
     std::vector<int> e_transitions;
     match_state match;
 
-    nfa_state(std::map<uint8_t, std::vector<int>>&& transitions,
+    nfa_state(std::vector<std::pair<trans, std::vector<int>>>&& transitions,
               std::vector<int>&& e_transitions,
               match_state match);
 };
@@ -40,7 +84,7 @@ class nfa
     static nfa parse_regex(const char* regex, size_t size);
 
     nfa(uint8_t c);
-    nfa(const std::vector<std::pair<uint8_t, uint8_t>>& ranges, bool negate);
+    nfa(const std::vector<trans::bounds_t>& ranges, bool negate);
     nfa();
 
   public:
@@ -78,7 +122,7 @@ class nfa_executor
 
     void reset();
     void start_path();
-    void next(uint8_t symbol);
+    void next(symbol_t symbol);
     match_state match() const;
     size_t longest_match() const;
     size_t trim_short_matches();
