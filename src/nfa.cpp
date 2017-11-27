@@ -112,6 +112,19 @@ nfa::nfa()
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
+nfa::nfa(class_id_t class_id, bool negate)
+{
+    std::vector<std::pair<trans, std::vector<int>>> transitions;
+    std::vector<int> succ0{ 1 };
+    if (negate) {
+        transitions.emplace_back(trans::not_char_class(class_id), succ0);
+    } else {
+        transitions.emplace_back(trans::char_class(class_id), succ0);
+    }
+    this->states.push_back({ std::move(transitions), {}, match_state::UNSURE });
+    this->states.push_back({ {}, {}, match_state::ACCEPT });
+}
+
 nfa
 nfa::parse_regex(const char* regex, size_t size)
 {
@@ -262,38 +275,33 @@ nfa::parse_regex(const char* regex, size_t size)
         } else if (base[0] == '.' && !escape) {
             sequence.emplace_back(nfa({ { 0, 255 } }, false));
         } else if (escape) {
-            std::vector<trans::bounds_t> ranges;
+            class_id_t id;
             bool negate = false;
+            bool is_char_class = true;
             switch (base[0]) {
-                case 'd':
-                    ranges = { { '0', '9' } };
-                    break;
                 case 'D':
-                    ranges = { { '0', '9' } };
                     negate = true;
-                    break;
-                case 'w':
-                    ranges = {
-                        { 'a', 'z' }, { 'A', 'Z' }, { '_', '_' }, { '0', '9' }
-                    };
+                case 'd':
+                    id = class_id_t::DIGIT;
                     break;
                 case 'W':
-                    ranges = {
-                        { 'a', 'z' }, { 'A', 'Z' }, { '_', '_' }, { '0', '9' }
-                    };
                     negate = true;
-                    break;
-                case 's':
-                    ranges = { { ' ', ' ' }, { '\t', '\r' } };
+                case 'w':
+                    id = class_id_t::WORD;
                     break;
                 case 'S':
-                    ranges = { { ' ', ' ' }, { '\t', '\r' } };
                     negate = true;
+                case 's':
+                    id = class_id_t::SPACE;
                     break;
                 default:
-                    ranges = { { (uint8_t)base[0], (uint8_t)base[0] } };
+                    is_char_class = false;
             }
-            sequence.emplace_back(nfa(ranges, negate));
+            if (is_char_class) {
+                sequence.emplace_back(nfa(id, negate));
+            } else {
+                sequence.emplace_back(nfa(base[0]));
+            }
         } else {
             sequence.emplace_back(nfa(base[0]));
         }
@@ -342,9 +350,9 @@ nfa_cursor::nfa_cursor(size_t index, size_t count)
 {}
 
 void
-nfa_executor::transition_to(const nfa_cursor& cursor,
-                            int offset,
-                            std::vector<nfa_cursor>& index_set)
+nfa_executor_base::transition_to(const nfa_cursor& cursor,
+                                 int offset,
+                                 std::vector<nfa_cursor>& index_set)
 {
     const auto& state = this->state_machine.get_states()[cursor.index + offset];
     for (size_t i : state.e_transitions) {
@@ -356,60 +364,13 @@ nfa_executor::transition_to(const nfa_cursor& cursor,
 }
 
 void
-nfa_executor::add_successor_states(symbol_t symbol,
-                                   const nfa_cursor& cursor,
-                                   std::vector<nfa_cursor>& cursor_set)
-{
-    const auto& state = this->state_machine.get_states()[cursor.index];
-    for (const auto& it : state.transitions) {
-        bool match;
-        switch (it.first.type) {
-            case trans_t::EXACT:
-                match = symbol == it.first.symbol;
-                break;
-            case trans_t::NOT_EXACT:
-                match = symbol != it.first.symbol;
-                break;
-            case trans_t::RANGE:
-                match = symbol >= it.first.bounds.from &&
-                        symbol <= it.first.bounds.to;
-                break;
-            case trans_t::NOT_RANGE:
-                match = symbol < it.first.bounds.from ||
-                        symbol > it.first.bounds.to;
-                break;
-            case trans_t::CLASS:
-            case trans_t::NOT_CLASS:
-                // TODO: implement
-                throw std::logic_error("method not implemented");
-        }
-        if (match) {
-            for (size_t i : it.second) {
-                this->transition_to(cursor, i, cursor_set);
-            }
-        }
-    }
-}
-
-void
-nfa_executor::start_path()
+nfa_executor_base::start_path()
 {
     this->transition_to({ 0, 0 }, 0, this->current);
 }
 
-void
-nfa_executor::next(symbol_t symbol)
-{
-    std::vector<nfa_cursor> next;
-    next.reserve(this->current.size());
-    for (const auto& cursor : this->current) {
-        this->add_successor_states(symbol, cursor, next);
-    }
-    this->current = std::move(next);
-}
-
 match_state
-nfa_executor::match() const
+nfa_executor_base::match() const
 {
     match_state result = match_state::REFUSE;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -421,14 +382,14 @@ nfa_executor::match() const
 }
 
 void
-nfa_executor::reset()
+nfa_executor_base::reset()
 {
     this->current.clear();
     this->start_path();
 }
 
 size_t
-nfa_executor::longest_match() const
+nfa_executor_base::longest_match() const
 {
     size_t result = 1;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -442,7 +403,7 @@ nfa_executor::longest_match() const
 }
 
 size_t
-nfa_executor::trim_short_matches()
+nfa_executor_base::trim_short_matches()
 {
     size_t max = this->longest_match();
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -453,7 +414,7 @@ nfa_executor::trim_short_matches()
     return max;
 }
 
-nfa_executor::nfa_executor(const std::string& regex)
+nfa_executor_base::nfa_executor_base(const std::string& regex)
     : state_machine(regex)
 {
     this->start_path();
@@ -513,5 +474,38 @@ trans::not_char_class(class_id_t class_id)
     res.type = trans_t::NOT_CLASS;
     res.class_id = class_id;
     return res;
+}
+
+bool
+ascii_backend::is_equal(symbol_t sym1, symbol_t sym2)
+{
+    return sym1 == sym2;
+}
+
+bool
+ascii_backend::is_equal_to_ascii(symbol_t sym1, char chr)
+{
+    return sym1 == chr;
+}
+
+bool
+ascii_backend::is_in_range(symbol_t sym, symbol_t from, symbol_t to)
+{
+    return sym >= from && sym <= to;
+}
+
+bool
+ascii_backend::is_in_class(symbol_t sym, class_id_t class_id)
+{
+    switch (class_id) {
+        case class_id_t::DIGIT:
+            return std::isdigit(sym);
+        case class_id_t::PUNCT:
+            return std::ispunct(sym);
+        case class_id_t::SPACE:
+            return std::isspace(sym);
+        case class_id_t::WORD:
+            return std::isalnum(sym) || sym == '_';
+    }
 }
 }

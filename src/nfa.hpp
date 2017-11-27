@@ -5,12 +5,14 @@
 #include <string>
 #include <vector>
 
+#include <stdexcept>
+
 // ***************************************************************
 // NFA CONSTRUCTION & EXECUTION
 // ***************************************************************
 namespace nstr_private {
 
-typedef uint8_t symbol_t;
+typedef uint32_t symbol_t;
 
 enum class match_state
 {
@@ -35,6 +37,14 @@ enum class class_id_t
     DIGIT,
     SPACE,
     PUNCT
+};
+
+struct ascii_backend
+{
+    static bool is_equal(symbol_t sym1, symbol_t sym2);
+    static bool is_equal_to_ascii(symbol_t sym1, char chr);
+    static bool is_in_range(symbol_t sym, symbol_t from, symbol_t to);
+    static bool is_in_class(symbol_t sym, class_id_t class_id);
 };
 
 struct trans
@@ -83,9 +93,10 @@ class nfa
     static nfa repeat(nfa&& x, int min, int max);
     static nfa parse_regex(const char* regex, size_t size);
 
-    nfa(uint8_t c);
+    nfa(symbol_t c);
     nfa(const std::vector<trans::bounds_t>& ranges, bool negate);
     nfa();
+    nfa(class_id_t class_id, bool negate);
 
   public:
     nfa(const std::string& regex);
@@ -105,27 +116,99 @@ struct nfa_cursor
     nfa_cursor(size_t index, size_t count);
 };
 
-class nfa_executor
+class nfa_executor_base
 {
+  protected:
     nfa state_machine;
     std::vector<nfa_cursor> current;
 
     void transition_to(const nfa_cursor& cursor,
                        int offset,
                        std::vector<nfa_cursor>& index_set);
-    void add_successor_states(uint8_t symbol,
+
+    nfa_executor_base(const std::string& regex);
+
+  public:
+    size_t longest_match() const;
+    size_t trim_short_matches();
+    match_state match() const;
+
+    void reset();
+    void start_path();
+};
+
+template<typename BackendT>
+class nfa_executor : public nfa_executor_base
+{
+  private:
+    void add_successor_states(symbol_t symbol,
                               const nfa_cursor& cursor,
                               std::vector<nfa_cursor>& index_set);
 
   public:
     nfa_executor(const std::string& regex);
 
-    void reset();
-    void start_path();
     void next(symbol_t symbol);
-    match_state match() const;
-    size_t longest_match() const;
-    size_t trim_short_matches();
 };
+
+template<typename BackendT>
+void
+nfa_executor<BackendT>::add_successor_states(
+    symbol_t symbol,
+    const nfa_cursor& cursor,
+    std::vector<nfa_cursor>& cursor_set)
+{
+    const auto& state = this->state_machine.get_states()[cursor.index];
+    for (const auto& it : state.transitions) {
+        bool match;
+        void add_successor_states(symbol_t symbol,
+                                  const nfa_cursor& cursor,
+                                  std::vector<nfa_cursor>& index_set);
+        switch (it.first.type) {
+            case trans_t::EXACT:
+                match = BackendT::is_equal(symbol, it.first.symbol);
+                break;
+            case trans_t::NOT_EXACT:
+                match = !BackendT::is_equal(symbol, it.first.symbol);
+                break;
+            case trans_t::RANGE:
+                match = BackendT::is_in_range(
+                    symbol, it.first.bounds.from, it.first.bounds.to);
+                break;
+            case trans_t::NOT_RANGE:
+                match = !BackendT::is_in_range(
+                    symbol, it.first.bounds.from, it.first.bounds.to);
+                break;
+            case trans_t::CLASS:
+                match = BackendT::is_in_class(symbol, it.first.class_id);
+                break;
+            case trans_t::NOT_CLASS:
+                match = !BackendT::is_in_class(symbol, it.first.class_id);
+                break;
+        }
+        if (match) {
+            for (size_t i : it.second) {
+                this->transition_to(cursor, i, cursor_set);
+            }
+        }
+    }
+}
+
+template<typename BackendT>
+nfa_executor<BackendT>::nfa_executor(const std::string& regex)
+    : nfa_executor_base(regex)
+{}
+
+template<typename BackendT>
+void
+nfa_executor<BackendT>::next(symbol_t symbol)
+{
+    std::vector<nfa_cursor> next;
+    next.reserve(this->current.size());
+    for (const auto& cursor : this->current) {
+        this->add_successor_states(symbol, cursor, next);
+    }
+    this->current = std::move(next);
+}
 }
 #endif

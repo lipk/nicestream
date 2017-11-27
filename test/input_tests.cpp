@@ -150,7 +150,7 @@ TEST_CASE("nstr::skip", "[skip]")
 TEST_CASE("Match lengths", "[length]")
 {
     {
-        nfa_executor e("a*");
+        nfa_executor<nstr_private::ascii_backend> e("a*");
         CHECK(e.match() == match_state::ACCEPT);
         CHECK(e.longest_match() == 0);
         e.next('a');
@@ -164,7 +164,7 @@ TEST_CASE("Match lengths", "[length]")
         CHECK(e.longest_match() == 3);
     }
     {
-        nfa_executor e("(a{3}|a)");
+        nfa_executor<nstr_private::ascii_backend> e("(a{3}|a)");
         CHECK(e.match() == match_state::UNSURE);
         CHECK(e.longest_match() == 0);
         e.next('a');
@@ -181,7 +181,7 @@ TEST_CASE("Match lengths", "[length]")
         CHECK(e.longest_match() == 0);
     }
     {
-        nfa_executor e("(b|aba)");
+        nfa_executor<nstr_private::ascii_backend> e("(b|aba)");
         CHECK(e.match() == match_state::UNSURE);
         CHECK(e.longest_match() == 0);
         e.next('a');
