@@ -130,192 +130,6 @@ nfa::nfa(trans tr)
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
-nfa nfa::parse_regex(std::istream& str, size_t level)
-{
-    if (level >= 100) {
-        throw invalid_regex();
-    }
-    std::vector<nfa> sequence;
-    bool has_parallel = false;
-    nfa parallel;
-    bool escape = false;
-    typedef ascii_backend BackendT;
-    for (symbol_t cur = BackendT::get(str); !str.eof();
-         cur = BackendT::get(str)) {
-        if (BackendT::is_equal_to_ascii(cur, '\\') && !escape) {
-            escape = true;
-            continue;
-        } else if (BackendT::is_equal_to_ascii(cur, '(') && !escape) {
-            nfa sub = parse_regex(str, level + 1);
-            sequence.emplace_back(std::move(sub));
-        } else if (BackendT::is_equal_to_ascii(cur, '{') && !escape) {
-            int min = 0, max = -1;
-            bool comma_ok = false, brace_ok = false, first_it = true;
-            for (cur = BackendT::get(str); !str.eof();
-                 cur = BackendT::get(str)) {
-                if (BackendT::is_equal_to_ascii(cur, ',')) {
-                    if (comma_ok || first_it) {
-                        throw invalid_regex();
-                    }
-                    comma_ok = true;
-                } else if (BackendT::is_equal_to_ascii(cur, '}')) {
-                    if (first_it) {
-                        throw invalid_regex();
-                    }
-                    brace_ok = true;
-                    break;
-                } else if (BackendT::is_in_class(cur, class_id_t::DIGIT)) {
-                    int value = BackendT::to_number(cur);
-                    if (comma_ok) {
-                        if (max == -1) {
-                            max = 0;
-                        }
-                        max = max * 10 + value;
-                    } else {
-                        min = min * 10 + value;
-                    }
-                } else {
-                    throw invalid_regex();
-                }
-                first_it = false;
-            }
-            if (!brace_ok) {
-                throw invalid_regex();
-            }
-            if (!comma_ok) {
-                max = min;
-            }
-            if (sequence.empty()) {
-                throw invalid_regex();
-            }
-            sequence.back() = repeat(std::move(sequence.back()), min, max);
-        } else if (BackendT::is_equal_to_ascii(cur, '*') && !escape) {
-            if (sequence.empty()) {
-                throw invalid_regex();
-            }
-            sequence.back() = loop(std::move(sequence.back()));
-        } else if (BackendT::is_equal_to_ascii(cur, '?') && !escape) {
-            if (sequence.empty()) {
-                throw invalid_regex();
-            }
-            sequence.back() = unite(std::move(sequence.back()), nfa());
-        } else if (BackendT::is_equal_to_ascii(cur, '+') && !escape) {
-            if (sequence.empty()) {
-                throw invalid_regex();
-            }
-            sequence.emplace_back(loop(nfa(sequence.back())));
-        } else if (BackendT::is_equal_to_ascii(cur, '[') && !escape) {
-            std::vector<trans::bounds_t> ranges;
-            bool brack_esc = false;
-            symbol_t prev = 0;
-            bool has_prev = false, is_range = false, bracket_ok = false,
-                 negate = false;
-            bool first_iter = true;
-            for (cur = BackendT::get(str); !str.eof();
-                 cur = BackendT::get(str), first_iter = false) {
-                if (BackendT::is_equal_to_ascii(cur, '\\') && !brack_esc) {
-                    brack_esc = true;
-                    continue;
-                } else if (BackendT::is_equal_to_ascii(cur, '^') &&
-                           !brack_esc) {
-                    if (!first_iter) {
-                        throw invalid_regex();
-                    }
-                    negate = true;
-                } else if (BackendT::is_equal_to_ascii(cur, '-') &&
-                           !brack_esc) {
-                    if (!has_prev) {
-                        throw invalid_regex();
-                    }
-                    is_range = true;
-                } else if (BackendT::is_equal_to_ascii(cur, ']') &&
-                           !brack_esc) {
-                    bracket_ok = true;
-                    break;
-                } else {
-                    if (is_range) {
-                        ranges.push_back({ prev, cur });
-                        has_prev = false;
-                        is_range = false;
-                    } else {
-                        if (has_prev) {
-                            ranges.push_back({ prev, prev });
-                        }
-                        prev = cur;
-                        has_prev = true;
-                    }
-                }
-                brack_esc = false;
-            }
-            if (is_range || !bracket_ok) {
-                throw invalid_regex();
-            }
-            if (has_prev) {
-                ranges.push_back({ prev, prev });
-            }
-            sequence.emplace_back(nfa(ranges, negate));
-        } else if (BackendT::is_equal_to_ascii(cur, '.') && !escape) {
-            sequence.emplace_back(nfa(trans::any()));
-        } else if (BackendT::is_equal_to_ascii(cur, ')') && !escape &&
-                   level > 0) {
-            break;
-        } else if (BackendT::is_equal_to_ascii(cur, '|') && !escape &&
-                   level > 0) {
-            parallel = parse_regex(str, level);
-            has_parallel = true;
-            break;
-        } else if (escape) {
-            class_id_t id;
-            bool negate = false;
-            bool is_char_class = true;
-            switch (cur) {
-                case 'D':
-                    negate = true;
-                case 'd':
-                    id = class_id_t::DIGIT;
-                    break;
-                case 'W':
-                    negate = true;
-                case 'w':
-                    id = class_id_t::WORD;
-                    break;
-                case 'S':
-                    negate = true;
-                case 's':
-                    id = class_id_t::SPACE;
-                    break;
-                default:
-                    is_char_class = false;
-            }
-            if (is_char_class) {
-                sequence.emplace_back(nfa(id, negate));
-            } else {
-                sequence.emplace_back(nfa(cur));
-            }
-        } else {
-            sequence.emplace_back(nfa(cur));
-        }
-        escape = false;
-    }
-    if (level > 0 && str.eof()) {
-        throw invalid_regex();
-    }
-    nfa res;
-    if (sequence.empty()) {
-        res = nfa();
-    } else {
-        for (size_t i = 1; i < sequence.size(); ++i) {
-            sequence.front() = concatenate(std::move(sequence.front()),
-                                           std::move(sequence[i]));
-        }
-        res = std::move(sequence.front());
-    }
-    if (has_parallel) {
-        res = nfa::unite(std::move(res), std::move(parallel));
-    }
-    return res;
-}
-
 const std::vector<nfa_state>& nfa::get_states() const
 {
     return this->states;
@@ -333,12 +147,6 @@ nfa& nfa::operator=(nfa&& other)
 nfa::nfa(nfa&& other)
 {
     *this = std::move(other);
-}
-
-nfa::nfa(const std::string& regex)
-{
-    std::stringstream str(regex);
-    *this = parse_regex(str, 0);
 }
 
 nfa_cursor::nfa_cursor(size_t index, size_t count)
@@ -403,12 +211,6 @@ size_t nfa_executor_base::trim_short_matches()
         }
     }
     return max;
-}
-
-nfa_executor_base::nfa_executor_base(const std::string& regex)
-    : state_machine(regex)
-{
-    this->start_path();
 }
 
 trans trans::exact(symbol_t sym)
@@ -510,5 +312,11 @@ symbol_t single_byte_splitter::get(std::istream& str)
 void single_byte_splitter::putback(std::istream& str, symbol_t sym)
 {
     str.putback(sym);
+}
+
+nstr_private::nfa_executor_base::nfa_executor_base(nfa&& state_machine)
+    : state_machine(state_machine)
+{
+    this->start_path();
 }
 }
