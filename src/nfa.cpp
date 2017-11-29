@@ -169,14 +169,17 @@ nfa::parse_regex(std::istream& str, size_t level)
                     }
                     brace_ok = true;
                     break;
-                } else if (std::isdigit(cur)) { // TODO: use BackendT here
+                } else if (BackendT::is_in_class(
+                               cur,
+                               class_id_t::DIGIT)) {
+                    int value = BackendT::to_number(cur);
                     if (comma_ok) {
                         if (max == -1) {
                             max = 0;
                         }
-                        max = max * 10 + cur - '0';
+                        max = max * 10 + value;
                     } else {
-                        min = min * 10 + cur - '0';
+                        min = min * 10 + value;
                     }
                 } else {
                     throw invalid_regex();
@@ -518,6 +521,12 @@ ascii_comparator::is_in_class(symbol_t sym, class_id_t class_id)
         case class_id_t::WORD:
             return std::isalnum(sym) || sym == '_';
     }
+}
+
+int
+ascii_comparator::to_number(symbol_t sym)
+{
+    return sym - '0';
 }
 
 symbol_t
