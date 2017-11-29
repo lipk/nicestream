@@ -125,78 +125,63 @@ nfa::nfa(class_id_t class_id, bool negate)
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
-nfa
-nfa::parse_regex(const char* regex, size_t size)
+nfa::nfa(trans tr)
 {
+    std::vector<std::pair<trans, std::vector<int>>> transitions;
+    std::vector<int> succ0{ 1 };
+    transitions.emplace_back(tr, succ0);
+    this->states.push_back({ std::move(transitions), {}, match_state::UNSURE });
+    this->states.push_back({ {}, {}, match_state::ACCEPT });
+}
+
+nfa
+nfa::parse_regex(std::istream& str, size_t level)
+{
+    if (level >= 100) {
+        throw invalid_regex();
+    }
     std::vector<nfa> sequence;
+    bool has_parallel = false;
+    nfa parallel;
     bool escape = false;
-    for (size_t offset = 0; offset < size; ++offset) {
-        const char* base = regex + offset;
-        size_t rem = size - offset;
-        if (base[0] == '\\' && !escape) {
+    typedef ascii_backend BackendT;
+    for (symbol_t cur = BackendT::get(str); !str.eof();
+         cur = BackendT::get(str)) {
+        if (BackendT::is_equal_to_ascii(cur, '\\') && !escape) {
             escape = true;
             continue;
-        } else if (base[0] == '(' && !escape) {
-            size_t lhs_begin = 1, lhs_size = 0;
-            size_t rhs_begin = 0, rhs_size = 0;
-            int level = 1;
-            size_t i;
-            for (i = 1; i < rem && level > 0; ++i, ++offset) {
-                if (base[i] == '\\') {
-                    i += 1;
-                } else if (base[i] == '(') {
-                    ++level;
-                } else if (base[i] == ')') {
-                    --level;
-                } else if (base[i] == '|' && level == 1) {
-                    if (rhs_begin != 0) {
-                        throw invalid_regex();
-                    }
-                    lhs_size = i - lhs_begin;
-                    rhs_begin = i + 1;
-                }
-            }
-            if (level != 0) {
-                throw invalid_regex();
-            }
-            nfa par;
-            if (rhs_begin != 0) {
-                rhs_size = i - 1 - rhs_begin;
-                nfa lhs = parse_regex(base + lhs_begin, lhs_size);
-                nfa rhs = parse_regex(base + rhs_begin, rhs_size);
-                par = unite(std::move(lhs), std::move(rhs));
-            } else {
-                par = parse_regex(base + lhs_begin, i - 1 - lhs_begin);
-            }
-            sequence.emplace_back(std::move(par));
-        } else if (base[0] == '{' && !escape) {
+        } else if (BackendT::is_equal_to_ascii(cur, '(') && !escape) {
+            nfa sub = parse_regex(str, level + 1);
+            sequence.emplace_back(std::move(sub));
+        } else if (BackendT::is_equal_to_ascii(cur, '{') && !escape) {
             int min = 0, max = -1;
-            bool comma_ok = false, brace_ok = false;
-            for (size_t i = 1; i < rem; ++i, ++offset) {
-                if (base[i] == ',') {
-                    if (i == 1 || comma_ok) {
+            bool comma_ok = false, brace_ok = false, first_it = true;
+            for (cur = BackendT::get(str); !str.eof();
+                 cur = BackendT::get(str)) {
+                if (BackendT::is_equal_to_ascii(cur, ',')) {
+                    if (comma_ok || first_it) {
                         throw invalid_regex();
                     }
                     comma_ok = true;
-                } else if (base[i] == '}') {
-                    if (i == 1) {
+                } else if (BackendT::is_equal_to_ascii(cur, '}')) {
+                    if (first_it) {
                         throw invalid_regex();
                     }
                     brace_ok = true;
-                    ++offset;
                     break;
-                } else if (std::isdigit(base[i])) {
+                } else if (std::isdigit(cur)) { // TODO: use BackendT here
                     if (comma_ok) {
                         if (max == -1) {
                             max = 0;
                         }
-                        max = max * 10 + base[i] - '0';
+                        max = max * 10 + cur - '0';
                     } else {
-                        min = min * 10 + base[i] - '0';
+                        min = min * 10 + cur - '0';
                     }
                 } else {
                     throw invalid_regex();
                 }
+                first_it = false;
             }
             if (!brace_ok) {
                 throw invalid_regex();
@@ -204,62 +189,63 @@ nfa::parse_regex(const char* regex, size_t size)
             if (!comma_ok) {
                 max = min;
             }
+            if (sequence.empty()) {
+                throw invalid_regex();
+            }
             sequence.back() = repeat(std::move(sequence.back()), min, max);
-        } else if (base[0] == '*' && !escape) {
-            if (offset == 0) {
+        } else if (BackendT::is_equal_to_ascii(cur, '*') && !escape) {
+            if (sequence.empty()) {
                 throw invalid_regex();
             }
             sequence.back() = loop(std::move(sequence.back()));
-        } else if (base[0] == '?' && !escape) {
-            if (offset == 0) {
+        } else if (BackendT::is_equal_to_ascii(cur, '?') && !escape) {
+            if (sequence.empty()) {
                 throw invalid_regex();
             }
             sequence.back() = unite(std::move(sequence.back()), nfa());
-        } else if (base[0] == '+' && !escape) {
-            if (offset == 0) {
+        } else if (BackendT::is_equal_to_ascii(cur, '+') && !escape) {
+            if (sequence.empty()) {
                 throw invalid_regex();
             }
             sequence.emplace_back(loop(nfa(sequence.back())));
-        } else if (base[0] == '[' && !escape) {
+        } else if (BackendT::is_equal_to_ascii(cur, '[') && !escape) {
             std::vector<trans::bounds_t> ranges;
             bool brack_esc = false;
             symbol_t prev = 0;
-            bool has_prev = false;
-            bool is_range = false;
-            bool bracket_ok = false;
-            bool negate = false;
-            for (size_t i = 1; i < rem; ++i, ++offset) {
-                if (base[i] == '\\' && !brack_esc) {
+            bool has_prev = false, is_range = false, bracket_ok = false,
+                 negate = false;
+            bool first_iter = true;
+            for (cur = BackendT::get(str); !str.eof();
+                 cur = BackendT::get(str), first_iter = false) {
+                if (BackendT::is_equal_to_ascii(cur, '\\') && !brack_esc) {
                     brack_esc = true;
                     continue;
-                } else if (base[i] == '^' && !brack_esc) {
-                    if (i != 1) {
+                } else if (BackendT::is_equal_to_ascii(cur, '^') &&
+                           !brack_esc) {
+                    if (!first_iter) {
                         throw invalid_regex();
                     }
                     negate = true;
-                } else if (base[i] == '-' && !brack_esc) {
+                } else if (BackendT::is_equal_to_ascii(cur, '-') &&
+                           !brack_esc) {
                     if (!has_prev) {
                         throw invalid_regex();
                     }
                     is_range = true;
-                } else if (base[i] == ']' && !brack_esc) {
-                    ++offset;
+                } else if (BackendT::is_equal_to_ascii(cur, ']') &&
+                           !brack_esc) {
                     bracket_ok = true;
                     break;
                 } else {
                     if (is_range) {
-                        if (base[i] < prev) {
-                            throw invalid_regex();
-                        }
-                        ranges.push_back({ prev, (symbol_t)base[i] });
+                        ranges.push_back({ prev, cur });
                         has_prev = false;
                         is_range = false;
                     } else {
                         if (has_prev) {
-                            ranges.push_back(
-                                { (symbol_t)prev, (symbol_t)prev });
+                            ranges.push_back({ prev, prev });
                         }
-                        prev = base[i];
+                        prev = cur;
                         has_prev = true;
                     }
                 }
@@ -269,16 +255,24 @@ nfa::parse_regex(const char* regex, size_t size)
                 throw invalid_regex();
             }
             if (has_prev) {
-                ranges.push_back({ (symbol_t)prev, (symbol_t)prev });
+                ranges.push_back({ prev, prev });
             }
             sequence.emplace_back(nfa(ranges, negate));
-        } else if (base[0] == '.' && !escape) {
-            sequence.emplace_back(nfa({ { 0, 255 } }, false));
+        } else if (BackendT::is_equal_to_ascii(cur, '.') && !escape) {
+            sequence.emplace_back(nfa(trans::any()));
+        } else if (BackendT::is_equal_to_ascii(cur, ')') && !escape &&
+                   level > 0) {
+            break;
+        } else if (BackendT::is_equal_to_ascii(cur, '|') && !escape &&
+                   level > 0) {
+            parallel = parse_regex(str, level);
+            has_parallel = true;
+            break;
         } else if (escape) {
             class_id_t id;
             bool negate = false;
             bool is_char_class = true;
-            switch (base[0]) {
+            switch (cur) {
                 case 'D':
                     negate = true;
                 case 'd':
@@ -300,22 +294,30 @@ nfa::parse_regex(const char* regex, size_t size)
             if (is_char_class) {
                 sequence.emplace_back(nfa(id, negate));
             } else {
-                sequence.emplace_back(nfa(base[0]));
+                sequence.emplace_back(nfa(cur));
             }
         } else {
-            sequence.emplace_back(nfa(base[0]));
+            sequence.emplace_back(nfa(cur));
         }
         escape = false;
     }
+    if (level > 0 && str.eof()) {
+        throw invalid_regex();
+    }
+    nfa res;
     if (sequence.empty()) {
-        return nfa();
+        res = nfa();
     } else {
         for (size_t i = 1; i < sequence.size(); ++i) {
             sequence.front() = concatenate(std::move(sequence.front()),
                                            std::move(sequence[i]));
         }
-        return std::move(sequence.front());
+        res = std::move(sequence.front());
     }
+    if (has_parallel) {
+        res = nfa::unite(std::move(res), std::move(parallel));
+    }
+    return res;
 }
 
 const std::vector<nfa_state>&
@@ -341,7 +343,8 @@ nfa::nfa(nfa&& other)
 
 nfa::nfa(const std::string& regex)
 {
-    *this = parse_regex(regex.c_str(), regex.size());
+    std::stringstream str(regex);
+    *this = parse_regex(str, 0);
 }
 
 nfa_cursor::nfa_cursor(size_t index, size_t count)
@@ -476,26 +479,34 @@ trans::not_char_class(class_id_t class_id)
     return res;
 }
 
+trans
+trans::any()
+{
+    trans res;
+    res.type = trans_t::ANY;
+    return res;
+}
+
 bool
-ascii_backend::is_equal(symbol_t sym1, symbol_t sym2)
+ascii_comparator::is_equal(symbol_t sym1, symbol_t sym2)
 {
     return sym1 == sym2;
 }
 
 bool
-ascii_backend::is_equal_to_ascii(symbol_t sym1, char chr)
+ascii_comparator::is_equal_to_ascii(symbol_t sym1, char chr)
 {
     return sym1 == chr;
 }
 
 bool
-ascii_backend::is_in_range(symbol_t sym, symbol_t from, symbol_t to)
+ascii_comparator::is_in_range(symbol_t sym, symbol_t from, symbol_t to)
 {
     return sym >= from && sym <= to;
 }
 
 bool
-ascii_backend::is_in_class(symbol_t sym, class_id_t class_id)
+ascii_comparator::is_in_class(symbol_t sym, class_id_t class_id)
 {
     switch (class_id) {
         case class_id_t::DIGIT:
@@ -507,5 +518,17 @@ ascii_backend::is_in_class(symbol_t sym, class_id_t class_id)
         case class_id_t::WORD:
             return std::isalnum(sym) || sym == '_';
     }
+}
+
+symbol_t
+single_byte_splitter::get(std::istream& str)
+{
+    return str.get();
+}
+
+void
+single_byte_splitter::putback(std::istream& str, symbol_t sym)
+{
+    str.putback(sym);
 }
 }
