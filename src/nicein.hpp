@@ -22,16 +22,14 @@ class skip
 };
 
 template<typename First, typename... Rest>
-std::istream&
-operator>>(std::istream& is, skip<First, Rest...>)
+std::istream& operator>>(std::istream& is, skip<First, Rest...>)
 {
     First f;
     is >> f;
     return is >> skip<Rest...>();
 }
 
-std::istream&
-operator>>(std::istream& is, skip<>);
+std::istream& operator>>(std::istream& is, skip<>);
 
 class until
 {
@@ -45,12 +43,10 @@ class until
     until(const std::string& regex);
 };
 
-std::istream&
-operator>>(std::istream& is, until obj);
+std::istream& operator>>(std::istream& is, until obj);
 
 template<typename T>
-void
-read_from_string(std::string&& src, T& obj)
+void read_from_string(std::string&& src, T& obj)
 {
     std::stringstream ss(std::move(src));
     ss >> obj;
@@ -61,8 +57,7 @@ read_from_string(std::string&& src, T& obj)
 }
 
 template<>
-void
-read_from_string(std::string&& src, std::string& obj);
+void read_from_string(std::string&& src, std::string& obj);
 
 template<typename T>
 class pattn_t
@@ -83,15 +78,13 @@ pattn_t<T>::pattn_t(const std::string& rx, T& dst)
 {}
 
 template<typename T>
-pattn_t<T>
-pattn(const std::string& rx, T& dst)
+pattn_t<T> pattn(const std::string& rx, T& dst)
 {
     return pattn_t<T>(rx, dst);
 }
 
 template<typename T>
-std::istream&
-operator>>(std::istream& is, pattn_t<T> what)
+std::istream& operator>>(std::istream& is, pattn_t<T> what)
 {
     bool is_valid = what.nfa.match() == nstr_private::match_state::ACCEPT;
     std::string buf, res;
@@ -135,8 +128,7 @@ class sep
     sep& operator=(sep&&);
 };
 
-std::istream&
-operator>>(std::istream& is, sep field);
+std::istream& operator>>(std::istream& is, sep field);
 
 class all
 {
@@ -147,8 +139,7 @@ class all
     all(std::string& dst);
 };
 
-std::istream&
-operator>>(std::istream& is, all obj);
+std::istream& operator>>(std::istream& is, all obj);
 
 template<typename ContT>
 class split_t
@@ -173,8 +164,7 @@ split_t<ContT>::split_t(const std::string& seprx,
 {}
 
 template<typename ContT>
-std::istream&
-operator>>(std::istream& is, split_t<ContT> obj)
+std::istream& operator>>(std::istream& is, split_t<ContT> obj)
 {
     std::string buf;
     bool sep_matched = false;
@@ -241,8 +231,9 @@ operator>>(std::istream& is, split_t<ContT> obj)
 }
 
 template<typename ContT>
-split_t<ContT>
-split(const std::string& seprx, const std::string& finrx, ContT& dst)
+split_t<ContT> split(const std::string& seprx,
+                     const std::string& finrx,
+                     ContT& dst)
 {
     return split_t<ContT>(seprx, finrx, dst);
 }
