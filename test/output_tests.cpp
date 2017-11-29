@@ -1,4 +1,5 @@
 #include <catch.hpp>
+#include <set>
 #include <sstream>
 
 #include <nicestream.hpp>
