@@ -9,6 +9,13 @@
 
 namespace nstr {
 
+struct invalid_input : public std::exception
+{};
+struct stream_error : public std::exception
+{};
+struct invalid_regex : public std::exception
+{};
+
 template<typename... Fields>
 class skip
 {
