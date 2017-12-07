@@ -14,7 +14,8 @@ nfa_state::nfa_state(
     , match(match)
 {}
 
-nfa nfa::concatenate(nfa&& lhs, nfa&& rhs)
+nfa
+nfa::concatenate(nfa&& lhs, nfa&& rhs)
 {
     for (size_t i = 0; i < lhs.states.size(); ++i) {
         if (lhs.states[i].match == match_state::ACCEPT) {
@@ -26,7 +27,8 @@ nfa nfa::concatenate(nfa&& lhs, nfa&& rhs)
     return std::move(lhs);
 }
 
-nfa nfa::loop(nfa&& x)
+nfa
+nfa::loop(nfa&& x)
 {
     x.states.emplace_back(nfa_state({}, {}, match_state::ACCEPT));
     x.states.insert(
@@ -42,7 +44,8 @@ nfa nfa::loop(nfa&& x)
     return std::move(x);
 }
 
-nfa nfa::unite(nfa&& lhs, nfa&& rhs)
+nfa
+nfa::unite(nfa&& lhs, nfa&& rhs)
 {
     lhs.states.insert(lhs.states.begin(),
                       { {},
@@ -52,7 +55,8 @@ nfa nfa::unite(nfa&& lhs, nfa&& rhs)
     return std::move(lhs);
 }
 
-nfa nfa::repeat(nfa&& x, int min, int max)
+nfa
+nfa::repeat(nfa&& x, int min, int max)
 {
     nfa result;
     nfa x_orig = std::move(x);
@@ -130,7 +134,8 @@ nfa::nfa(trans tr)
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
-nfa nfa::parse_regex(std::istream& str, size_t level)
+nfa
+nfa::parse_regex(std::istream& str, size_t level)
 {
     if (level >= 100) {
         throw invalid_regex();
@@ -164,7 +169,9 @@ nfa nfa::parse_regex(std::istream& str, size_t level)
                     }
                     brace_ok = true;
                     break;
-                } else if (BackendT::is_in_class(cur, class_id_t::DIGIT)) {
+                } else if (BackendT::is_in_class(
+                               cur,
+                               class_id_t::DIGIT)) {
                     int value = BackendT::to_number(cur);
                     if (comma_ok) {
                         if (max == -1) {
@@ -316,12 +323,14 @@ nfa nfa::parse_regex(std::istream& str, size_t level)
     return res;
 }
 
-const std::vector<nfa_state>& nfa::get_states() const
+const std::vector<nfa_state>&
+nfa::get_states() const
 {
     return this->states;
 }
 
-nfa& nfa::operator=(nfa&& other)
+nfa&
+nfa::operator=(nfa&& other)
 {
     if (this != &other) {
         this->states = std::move(other.states);
@@ -346,9 +355,10 @@ nfa_cursor::nfa_cursor(size_t index, size_t count)
     , count(count)
 {}
 
-void nfa_executor_base::transition_to(const nfa_cursor& cursor,
-                                      int offset,
-                                      std::vector<nfa_cursor>& index_set)
+void
+nfa_executor_base::transition_to(const nfa_cursor& cursor,
+                                 int offset,
+                                 std::vector<nfa_cursor>& index_set)
 {
     const auto& state = this->state_machine.get_states()[cursor.index + offset];
     for (size_t i : state.e_transitions) {
@@ -359,12 +369,14 @@ void nfa_executor_base::transition_to(const nfa_cursor& cursor,
     }
 }
 
-void nfa_executor_base::start_path()
+void
+nfa_executor_base::start_path()
 {
     this->transition_to({ 0, 0 }, 0, this->current);
 }
 
-match_state nfa_executor_base::match() const
+match_state
+nfa_executor_base::match() const
 {
     match_state result = match_state::REFUSE;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -375,13 +387,15 @@ match_state nfa_executor_base::match() const
     return result;
 }
 
-void nfa_executor_base::reset()
+void
+nfa_executor_base::reset()
 {
     this->current.clear();
     this->start_path();
 }
 
-size_t nfa_executor_base::longest_match() const
+size_t
+nfa_executor_base::longest_match() const
 {
     size_t result = 1;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -394,7 +408,8 @@ size_t nfa_executor_base::longest_match() const
     return result - 1;
 }
 
-size_t nfa_executor_base::trim_short_matches()
+size_t
+nfa_executor_base::trim_short_matches()
 {
     size_t max = this->longest_match();
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -411,7 +426,8 @@ nfa_executor_base::nfa_executor_base(const std::string& regex)
     this->start_path();
 }
 
-trans trans::exact(symbol_t sym)
+trans
+trans::exact(symbol_t sym)
 {
     trans res;
     res.type = trans_t::EXACT;
@@ -419,7 +435,8 @@ trans trans::exact(symbol_t sym)
     return res;
 }
 
-trans trans::not_exact(symbol_t sym)
+trans
+trans::not_exact(symbol_t sym)
 {
     trans res;
     res.type = trans_t::NOT_EXACT;
@@ -427,7 +444,8 @@ trans trans::not_exact(symbol_t sym)
     return res;
 }
 
-trans trans::range(symbol_t from, symbol_t to)
+trans
+trans::range(symbol_t from, symbol_t to)
 {
     trans res;
     res.type = trans_t::RANGE;
@@ -436,7 +454,8 @@ trans trans::range(symbol_t from, symbol_t to)
     return res;
 }
 
-trans trans::not_range(symbol_t from, symbol_t to)
+trans
+trans::not_range(symbol_t from, symbol_t to)
 {
     trans res;
     res.type = trans_t::NOT_RANGE;
@@ -445,7 +464,8 @@ trans trans::not_range(symbol_t from, symbol_t to)
     return res;
 }
 
-trans trans::char_class(class_id_t class_id)
+trans
+trans::char_class(class_id_t class_id)
 {
     trans res;
     res.type = trans_t::CLASS;
@@ -453,7 +473,8 @@ trans trans::char_class(class_id_t class_id)
     return res;
 }
 
-trans trans::not_char_class(class_id_t class_id)
+trans
+trans::not_char_class(class_id_t class_id)
 {
     trans res;
     res.type = trans_t::NOT_CLASS;
@@ -461,29 +482,34 @@ trans trans::not_char_class(class_id_t class_id)
     return res;
 }
 
-trans trans::any()
+trans
+trans::any()
 {
     trans res;
     res.type = trans_t::ANY;
     return res;
 }
 
-bool ascii_comparator::is_equal(symbol_t sym1, symbol_t sym2)
+bool
+ascii_comparator::is_equal(symbol_t sym1, symbol_t sym2)
 {
     return sym1 == sym2;
 }
 
-bool ascii_comparator::is_equal_to_ascii(symbol_t sym1, char chr)
+bool
+ascii_comparator::is_equal_to_ascii(symbol_t sym1, char chr)
 {
     return sym1 == chr;
 }
 
-bool ascii_comparator::is_in_range(symbol_t sym, symbol_t from, symbol_t to)
+bool
+ascii_comparator::is_in_range(symbol_t sym, symbol_t from, symbol_t to)
 {
     return sym >= from && sym <= to;
 }
 
-bool ascii_comparator::is_in_class(symbol_t sym, class_id_t class_id)
+bool
+ascii_comparator::is_in_class(symbol_t sym, class_id_t class_id)
 {
     switch (class_id) {
         case class_id_t::DIGIT:
@@ -497,17 +523,20 @@ bool ascii_comparator::is_in_class(symbol_t sym, class_id_t class_id)
     }
 }
 
-int ascii_comparator::to_number(symbol_t sym)
+int
+ascii_comparator::to_number(symbol_t sym)
 {
     return sym - '0';
 }
 
-symbol_t single_byte_splitter::get(std::istream& str)
+symbol_t
+single_byte_splitter::get(std::istream& str)
 {
     return str.get();
 }
 
-void single_byte_splitter::putback(std::istream& str, symbol_t sym)
+void
+single_byte_splitter::putback(std::istream& str, symbol_t sym)
 {
     str.putback(sym);
 }

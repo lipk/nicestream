@@ -168,7 +168,8 @@ class nfa_executor : public nfa_executor_base
 };
 
 template<typename BackendT>
-void nfa_executor<BackendT>::add_successor_states(
+void
+nfa_executor<BackendT>::add_successor_states(
     symbol_t symbol,
     const nfa_cursor& cursor,
     std::vector<nfa_cursor>& cursor_set)
@@ -218,7 +219,8 @@ nfa_executor<BackendT>::nfa_executor(const std::string& regex)
 {}
 
 template<typename BackendT>
-void nfa_executor<BackendT>::next(symbol_t symbol)
+void
+nfa_executor<BackendT>::next(symbol_t symbol)
 {
     std::vector<nfa_cursor> next;
     next.reserve(this->current.size());
