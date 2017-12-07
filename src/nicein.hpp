@@ -36,7 +36,7 @@ operator>>(std::istream& is, skip<>);
 class until
 {
     friend std::istream& operator>>(std::istream&, until);
-    nstr_private::nfa_executor<nstr_private::ascii_backend> nfa;
+    nstr_private::nfa_executor nfa;
     std::string& dst;
     std::string dummy;
 
@@ -69,7 +69,7 @@ class pattn_t
 {
     template<typename S>
     friend std::istream& operator>>(std::istream&, pattn_t<S>);
-    nstr_private::nfa_executor<nstr_private::ascii_backend> nfa;
+    nstr_private::nfa_executor nfa;
     T& dst;
 
   public:
@@ -156,8 +156,8 @@ class split_t
     template<typename T>
     friend std::istream& operator>>(std::istream&, split_t<T>);
     ContT& dst;
-    nstr_private::nfa_executor<nstr_private::ascii_backend> nfa_sep;
-    nstr_private::nfa_executor<nstr_private::ascii_backend> nfa_fin;
+    nstr_private::nfa_executor nfa_sep;
+    nstr_private::nfa_executor nfa_fin;
 
   public:
     split_t(const std::string& seprx, const std::string& finrx, ContT& dst);
