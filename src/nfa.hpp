@@ -47,7 +47,6 @@ struct ascii_comparator
     static bool is_equal_to_ascii(symbol_t sym1, char chr);
     static bool is_in_range(symbol_t sym, symbol_t from, symbol_t to);
     static bool is_in_class(symbol_t sym, class_id_t class_id);
-    static int to_number(symbol_t sym);
 };
 
 struct single_byte_splitter
