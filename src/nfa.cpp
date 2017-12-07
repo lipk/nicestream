@@ -13,8 +13,7 @@ nfa_state::nfa_state(std::map<uint8_t, std::vector<int>>&& transitions,
     , match(match)
 {}
 
-nfa
-nfa::concatenate(nfa&& lhs, nfa&& rhs)
+nfa nfa::concatenate(nfa&& lhs, nfa&& rhs)
 {
     for (size_t i = 0; i < lhs.states.size(); ++i) {
         if (lhs.states[i].match == match_state::ACCEPT) {
@@ -26,8 +25,7 @@ nfa::concatenate(nfa&& lhs, nfa&& rhs)
     return std::move(lhs);
 }
 
-nfa
-nfa::loop(nfa&& x)
+nfa nfa::loop(nfa&& x)
 {
     x.states.emplace_back(nfa_state({}, {}, match_state::ACCEPT));
     x.states.insert(
@@ -43,8 +41,7 @@ nfa::loop(nfa&& x)
     return std::move(x);
 }
 
-nfa
-nfa::unite(nfa&& lhs, nfa&& rhs)
+nfa nfa::unite(nfa&& lhs, nfa&& rhs)
 {
     lhs.states.insert(lhs.states.begin(),
                       { {},
@@ -54,8 +51,7 @@ nfa::unite(nfa&& lhs, nfa&& rhs)
     return std::move(lhs);
 }
 
-nfa
-nfa::repeat(nfa&& x, int min, int max)
+nfa nfa::repeat(nfa&& x, int min, int max)
 {
     nfa result;
     nfa x_orig = std::move(x);
@@ -121,8 +117,7 @@ nfa::nfa()
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
-nfa
-nfa::parse_regex(const char* regex, size_t size)
+nfa nfa::parse_regex(const char* regex, size_t size)
 {
     std::vector<nfa> sequence;
     bool escape = false;
@@ -187,6 +182,7 @@ nfa::parse_regex(const char* regex, size_t size)
                             max = 0;
                         }
                         max = max * 10 + base[i] - '0';
+                        27f83544e4b6c56d5cd5aa57e169f6d3ead52b3b
                     } else {
                         min = min * 10 + base[i] - '0';
                     }
@@ -318,14 +314,12 @@ nfa::parse_regex(const char* regex, size_t size)
     }
 }
 
-const std::vector<nfa_state>&
-nfa::get_states() const
+const std::vector<nfa_state>& nfa::get_states() const
 {
     return this->states;
 }
 
-nfa&
-nfa::operator=(nfa&& other)
+nfa& nfa::operator=(nfa&& other)
 {
     if (this != &other) {
         this->states = std::move(other.states);
@@ -349,10 +343,9 @@ nfa_cursor::nfa_cursor(size_t index, size_t count)
     , count(count)
 {}
 
-void
-nfa_executor::transition_to(const nfa_cursor& cursor,
-                            int offset,
-                            std::vector<nfa_cursor>& index_set)
+void nfa_executor::transition_to(const nfa_cursor& cursor,
+                                 int offset,
+                                 std::vector<nfa_cursor>& index_set)
 {
     const auto& state = this->state_machine.get_states()[cursor.index + offset];
     for (size_t i : state.e_transitions) {
@@ -363,10 +356,9 @@ nfa_executor::transition_to(const nfa_cursor& cursor,
     }
 }
 
-void
-nfa_executor::add_successor_states(uint8_t symbol,
-                                   const nfa_cursor& cursor,
-                                   std::vector<nfa_cursor>& cursor_set)
+void nfa_executor::add_successor_states(uint8_t symbol,
+                                        const nfa_cursor& cursor,
+                                        std::vector<nfa_cursor>& cursor_set)
 {
     const auto& state = this->state_machine.get_states()[cursor.index];
     const auto it = state.transitions.find(symbol);
@@ -378,14 +370,12 @@ nfa_executor::add_successor_states(uint8_t symbol,
     }
 }
 
-void
-nfa_executor::start_path()
+void nfa_executor::start_path()
 {
     this->transition_to({ 0, 0 }, 0, this->current);
 }
 
-void
-nfa_executor::next(uint8_t symbol)
+void nfa_executor::next(uint8_t symbol)
 {
     std::vector<nfa_cursor> next;
     next.reserve(this->current.size());
@@ -395,8 +385,7 @@ nfa_executor::next(uint8_t symbol)
     this->current = std::move(next);
 }
 
-match_state
-nfa_executor::match() const
+match_state nfa_executor::match() const
 {
     match_state result = match_state::REFUSE;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -407,15 +396,13 @@ nfa_executor::match() const
     return result;
 }
 
-void
-nfa_executor::reset()
+void nfa_executor::reset()
 {
     this->current.clear();
     this->start_path();
 }
 
-size_t
-nfa_executor::longest_match() const
+size_t nfa_executor::longest_match() const
 {
     size_t result = 1;
     for (size_t i = this->current.size(); i > 0; --i) {
@@ -428,8 +415,7 @@ nfa_executor::longest_match() const
     return result - 1;
 }
 
-size_t
-nfa_executor::trim_short_matches()
+size_t nfa_executor::trim_short_matches()
 {
     size_t max = this->longest_match();
     for (size_t i = this->current.size(); i > 0; --i) {
