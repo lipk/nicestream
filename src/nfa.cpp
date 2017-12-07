@@ -5,10 +5,9 @@ using namespace nstr;
 
 namespace nstr_private {
 
-nfa_state::nfa_state(
-    std::vector<std::pair<trans, std::vector<int>>>&& transitions,
-    std::vector<int>&& e_transitions,
-    match_state match)
+nfa_state::nfa_state(std::map<uint8_t, std::vector<int>>&& transitions,
+                     std::vector<int>&& e_transitions,
+                     match_state match)
     : transitions(std::move(transitions))
     , e_transitions(std::move(e_transitions))
     , match(match)
@@ -84,26 +83,36 @@ nfa::repeat(nfa&& x, int min, int max)
     return result;
 }
 
-nfa::nfa(symbol_t c)
+nfa::nfa(uint8_t c)
 {
-    this->states.push_back(
-        { { { trans::exact(c), { 1 } } }, {}, match_state::UNSURE });
+    this->states.push_back({ { { c, { 1 } } }, {}, match_state::UNSURE });
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
-nfa::nfa(const std::vector<trans::bounds_t>& ranges, bool negate)
+nfa::nfa(const std::vector<std::pair<uint8_t, uint8_t>>& ranges, bool negate)
 {
-    std::vector<std::pair<trans, std::vector<int>>> transitions;
-    std::vector<int> succ0{ 1 };
-    for (const auto& range : ranges) {
-        if (negate) {
-            transitions.emplace_back(trans::not_range(range.from, range.to),
-                                     succ0);
-        } else {
-            transitions.emplace_back(trans::range(range.from, range.to), succ0);
+    std::map<uint8_t, std::vector<int>> trans;
+    if (negate) {
+        for (size_t c = 0; c < 256; ++c) {
+            bool in_range = false;
+            for (const auto& range : ranges) {
+                if (c >= range.first && c <= range.second) {
+                    in_range = true;
+                    break;
+                }
+            }
+            if (!in_range) {
+                trans.insert({ c, { 1 } });
+            }
+        }
+    } else {
+        for (const auto& range : ranges) {
+            for (size_t c = range.first; c <= range.second; ++c) {
+                trans.insert({ c, { 1 } });
+            }
         }
     }
-    this->states.push_back({ std::move(transitions), {}, match_state::UNSURE });
+    this->states.push_back({ std::move(trans), {}, match_state::UNSURE });
     this->states.push_back({ {}, {}, match_state::ACCEPT });
 }
 
@@ -208,9 +217,9 @@ nfa::parse_regex(const char* regex, size_t size)
             }
             sequence.emplace_back(loop(nfa(sequence.back())));
         } else if (base[0] == '[' && !escape) {
-            std::vector<trans::bounds_t> ranges;
+            std::vector<std::pair<uint8_t, uint8_t>> ranges;
             bool brack_esc = false;
-            symbol_t prev = 0;
+            uint8_t prev = 0;
             bool has_prev = false;
             bool is_range = false;
             bool bracket_ok = false;
@@ -238,13 +247,12 @@ nfa::parse_regex(const char* regex, size_t size)
                         if (base[i] < prev) {
                             throw invalid_regex();
                         }
-                        ranges.push_back({ prev, (symbol_t)base[i] });
+                        ranges.emplace_back(prev, base[i]);
                         has_prev = false;
                         is_range = false;
                     } else {
                         if (has_prev) {
-                            ranges.push_back(
-                                { (symbol_t)prev, (symbol_t)prev });
+                            ranges.emplace_back(prev, prev);
                         }
                         prev = base[i];
                         has_prev = true;
@@ -256,13 +264,13 @@ nfa::parse_regex(const char* regex, size_t size)
                 throw invalid_regex();
             }
             if (has_prev) {
-                ranges.push_back({ (symbol_t)prev, (symbol_t)prev });
+                ranges.emplace_back(prev, prev);
             }
             sequence.emplace_back(nfa(ranges, negate));
         } else if (base[0] == '.' && !escape) {
             sequence.emplace_back(nfa({ { 0, 255 } }, false));
         } else if (escape) {
-            std::vector<trans::bounds_t> ranges;
+            std::vector<std::pair<uint8_t, uint8_t>> ranges;
             bool negate = false;
             switch (base[0]) {
                 case 'd':
@@ -291,7 +299,7 @@ nfa::parse_regex(const char* regex, size_t size)
                     negate = true;
                     break;
                 default:
-                    ranges = { { (uint8_t)base[0], (uint8_t)base[0] } };
+                    ranges = { { base[0], base[0] } };
             }
             sequence.emplace_back(nfa(ranges, negate));
         } else {
@@ -356,38 +364,17 @@ nfa_executor::transition_to(const nfa_cursor& cursor,
 }
 
 void
-nfa_executor::add_successor_states(symbol_t symbol,
+nfa_executor::add_successor_states(uint8_t symbol,
                                    const nfa_cursor& cursor,
                                    std::vector<nfa_cursor>& cursor_set)
 {
     const auto& state = this->state_machine.get_states()[cursor.index];
-    for (const auto& it : state.transitions) {
-        bool match;
-        switch (it.first.type) {
-            case trans_t::EXACT:
-                match = symbol == it.first.symbol;
-                break;
-            case trans_t::NOT_EXACT:
-                match = symbol != it.first.symbol;
-                break;
-            case trans_t::RANGE:
-                match = symbol >= it.first.bounds.from &&
-                        symbol <= it.first.bounds.to;
-                break;
-            case trans_t::NOT_RANGE:
-                match = symbol < it.first.bounds.from ||
-                        symbol > it.first.bounds.to;
-                break;
-            case trans_t::CLASS:
-            case trans_t::NOT_CLASS:
-                // TODO: implement
-                throw std::logic_error("method not implemented");
-        }
-        if (match) {
-            for (size_t i : it.second) {
-                this->transition_to(cursor, i, cursor_set);
-            }
-        }
+    const auto it = state.transitions.find(symbol);
+    if (it == state.transitions.end()) {
+        return;
+    }
+    for (size_t i : it->second) {
+        this->transition_to(cursor, i, cursor_set);
     }
 }
 
@@ -398,7 +385,7 @@ nfa_executor::start_path()
 }
 
 void
-nfa_executor::next(symbol_t symbol)
+nfa_executor::next(uint8_t symbol)
 {
     std::vector<nfa_cursor> next;
     next.reserve(this->current.size());
@@ -457,61 +444,5 @@ nfa_executor::nfa_executor(const std::string& regex)
     : state_machine(regex)
 {
     this->start_path();
-}
-
-trans
-trans::exact(symbol_t sym)
-{
-    trans res;
-    res.type = trans_t::EXACT;
-    res.symbol = sym;
-    return res;
-}
-
-trans
-trans::not_exact(symbol_t sym)
-{
-    trans res;
-    res.type = trans_t::NOT_EXACT;
-    res.symbol = sym;
-    return res;
-}
-
-trans
-trans::range(symbol_t from, symbol_t to)
-{
-    trans res;
-    res.type = trans_t::RANGE;
-    res.bounds.from = from;
-    res.bounds.to = to;
-    return res;
-}
-
-trans
-trans::not_range(symbol_t from, symbol_t to)
-{
-    trans res;
-    res.type = trans_t::NOT_RANGE;
-    res.bounds.from = from;
-    res.bounds.to = to;
-    return res;
-}
-
-trans
-trans::char_class(class_id_t class_id)
-{
-    trans res;
-    res.type = trans_t::CLASS;
-    res.class_id = class_id;
-    return res;
-}
-
-trans
-trans::not_char_class(class_id_t class_id)
-{
-    trans res;
-    res.type = trans_t::NOT_CLASS;
-    res.class_id = class_id;
-    return res;
 }
 }
