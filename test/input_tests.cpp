@@ -18,8 +18,6 @@ TEST_CASE("Regex parsing", "[regex]")
     CHECK_NOTHROW(sep("abc\\.\\*\\?\\+\\[\\"));
     CHECK_NOTHROW(sep("(abcabc)(cabcab)"));
     CHECK_NOTHROW(sep("(ab(cabc)(ca(bc))ab)"));
-    CHECK_THROWS_AS(sep("(zzz"), invalid_regex);
-    CHECK_THROWS_AS(sep("(zz(z)"), invalid_regex);
 
     // ?, *, +
     CHECK_NOTHROW(sep("x?"));
@@ -65,15 +63,6 @@ TEST_CASE("Regex parsing", "[regex]")
     CHECK_THROWS_AS(sep("[z-b]"), invalid_regex);
     CHECK_THROWS_AS(sep("[-z]"), invalid_regex);
     CHECK_THROWS_AS(sep("[z-]"), invalid_regex);
-
-    // unions
-    CHECK_NOTHROW(sep("(aaaa|bbb)"));
-    CHECK_NOTHROW(sep("((a(aa|)a|bbb)|zzzz)"));
-    CHECK_NOTHROW(sep("(a|)"));
-    CHECK_NOTHROW(sep("(a|\\|a)"));
-    CHECK_THROWS_AS(sep("(a|b|c)"),
-                    invalid_regex); // FIXME: maybe this isn't invalid
-    CHECK_THROWS_AS(sep("(a|c()"), invalid_regex);
 }
 
 TEST_CASE("nstr::sep", "[sep]")
@@ -163,44 +152,6 @@ TEST_CASE("Match lengths", "[length]")
         CHECK(e.match() == match_state::ACCEPT);
         CHECK(e.longest_match() == 3);
     }
-    {
-        nfa_executor e("(a{3}|a)");
-        CHECK(e.match() == match_state::UNSURE);
-        CHECK(e.longest_match() == 0);
-        e.next('a');
-        CHECK(e.match() == match_state::ACCEPT);
-        CHECK(e.longest_match() == 1);
-        e.next('a');
-        CHECK(e.match() == match_state::UNSURE);
-        CHECK(e.longest_match() == 0);
-        e.next('a');
-        CHECK(e.match() == match_state::ACCEPT);
-        CHECK(e.longest_match() == 3);
-        e.next('a');
-        CHECK(e.match() == match_state::REFUSE);
-        CHECK(e.longest_match() == 0);
-    }
-    {
-        nfa_executor e("(b|aba)");
-        CHECK(e.match() == match_state::UNSURE);
-        CHECK(e.longest_match() == 0);
-        e.next('a');
-        e.start_path();
-        CHECK(e.match() == match_state::UNSURE);
-        CHECK(e.longest_match() == 0);
-        e.next('b');
-        e.start_path();
-        CHECK(e.match() == match_state::ACCEPT);
-        CHECK(e.longest_match() == 1);
-        e.next('a');
-        e.start_path();
-        CHECK(e.match() == match_state::ACCEPT);
-        CHECK(e.longest_match() == 3);
-        e.next('a');
-        e.start_path();
-        CHECK(e.match() == match_state::UNSURE);
-        CHECK(e.longest_match() == 0);
-    }
 }
 
 TEST_CASE("nstr::until", "[until]")
@@ -237,13 +188,6 @@ TEST_CASE("nstr::until", "[until]")
         ss >> until("b*", str1) >> str2;
         CHECK(str1 == "");
         CHECK(str2 == "aaa");
-    }
-    {
-        std::string str1, str2;
-        sstr ss("aaa;;;;;");
-        ss >> until("(;;)+", str1) >> str2;
-        CHECK(str1 == "aaa");
-        CHECK(str2 == ";");
     }
 }
 

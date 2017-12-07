@@ -127,39 +127,6 @@ nfa nfa::parse_regex(const char* regex, size_t size)
         if (base[0] == '\\' && !escape) {
             escape = true;
             continue;
-        } else if (base[0] == '(' && !escape) {
-            size_t lhs_begin = 1, lhs_size = 0;
-            size_t rhs_begin = 0, rhs_size = 0;
-            int level = 1;
-            size_t i;
-            for (i = 1; i < rem && level > 0; ++i, ++offset) {
-                if (base[i] == '\\') {
-                    i += 1;
-                } else if (base[i] == '(') {
-                    ++level;
-                } else if (base[i] == ')') {
-                    --level;
-                } else if (base[i] == '|' && level == 1) {
-                    if (rhs_begin != 0) {
-                        throw invalid_regex();
-                    }
-                    lhs_size = i - lhs_begin;
-                    rhs_begin = i + 1;
-                }
-            }
-            if (level != 0) {
-                throw invalid_regex();
-            }
-            nfa par;
-            if (rhs_begin != 0) {
-                rhs_size = i - 1 - rhs_begin;
-                nfa lhs = parse_regex(base + lhs_begin, lhs_size);
-                nfa rhs = parse_regex(base + rhs_begin, rhs_size);
-                par = unite(std::move(lhs), std::move(rhs));
-            } else {
-                par = parse_regex(base + lhs_begin, i - 1 - lhs_begin);
-            }
-            sequence.emplace_back(std::move(par));
         } else if (base[0] == '{' && !escape) {
             int min = 0, max = -1;
             bool comma_ok = false, brace_ok = false;
@@ -182,7 +149,6 @@ nfa nfa::parse_regex(const char* regex, size_t size)
                             max = 0;
                         }
                         max = max * 10 + base[i] - '0';
-                        27f83544e4b6c56d5cd5aa57e169f6d3ead52b3b
                     } else {
                         min = min * 10 + base[i] - '0';
                     }
