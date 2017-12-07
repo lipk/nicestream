@@ -2,7 +2,6 @@
 #define NFA_HPP_INCLUDED
 
 #include <cstdint>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -29,8 +28,7 @@ enum class trans_t
     RANGE,
     NOT_RANGE,
     CLASS,
-    NOT_CLASS,
-    ANY
+    NOT_CLASS
 };
 
 enum class class_id_t
@@ -41,24 +39,13 @@ enum class class_id_t
     PUNCT
 };
 
-struct ascii_comparator
+struct ascii_backend
 {
     static bool is_equal(symbol_t sym1, symbol_t sym2);
     static bool is_equal_to_ascii(symbol_t sym1, char chr);
     static bool is_in_range(symbol_t sym, symbol_t from, symbol_t to);
     static bool is_in_class(symbol_t sym, class_id_t class_id);
 };
-
-struct single_byte_splitter
-{
-    static symbol_t get(std::istream& str);
-    static void putback(std::istream& str, symbol_t sym);
-};
-
-struct ascii_backend
-    : ascii_comparator
-    , single_byte_splitter
-{};
 
 struct trans
 {
@@ -75,7 +62,6 @@ struct trans
     static trans not_range(symbol_t from, symbol_t to);
     static trans char_class(class_id_t class_id);
     static trans not_char_class(class_id_t class_id);
-    static trans any();
 
     union
     {
@@ -105,13 +91,12 @@ class nfa
     static nfa loop(nfa&& x);
     static nfa unite(nfa&& lhs, nfa&& rhs);
     static nfa repeat(nfa&& x, int min, int max);
-    static nfa parse_regex(std::istream& regex, size_t level);
+    static nfa parse_regex(const char* regex, size_t size);
 
     nfa(symbol_t c);
     nfa(const std::vector<trans::bounds_t>& ranges, bool negate);
     nfa();
     nfa(class_id_t class_id, bool negate);
-    nfa(trans tr);
 
   public:
     nfa(const std::string& regex);
@@ -199,9 +184,6 @@ nfa_executor<BackendT>::add_successor_states(
                 break;
             case trans_t::NOT_CLASS:
                 match = !BackendT::is_in_class(symbol, it.first.class_id);
-                break;
-            case trans_t::ANY:
-                match = true;
                 break;
         }
         if (match) {

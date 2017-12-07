@@ -62,7 +62,7 @@ TEST_CASE("Regex parsing", "[regex]")
     CHECK_THROWS_AS(sep("[a^b]"), invalid_regex);
     CHECK_THROWS_AS(sep("[a-b"), invalid_regex);
     CHECK_THROWS_AS(sep("[a-b-c]"), invalid_regex);
-    // CHECK_THROWS_AS(sep("[z-b]"), invalid_regex);
+    CHECK_THROWS_AS(sep("[z-b]"), invalid_regex);
     CHECK_THROWS_AS(sep("[-z]"), invalid_regex);
     CHECK_THROWS_AS(sep("[z-]"), invalid_regex);
 
@@ -71,6 +71,8 @@ TEST_CASE("Regex parsing", "[regex]")
     CHECK_NOTHROW(sep("((a(aa|)a|bbb)|zzzz)"));
     CHECK_NOTHROW(sep("(a|)"));
     CHECK_NOTHROW(sep("(a|\\|a)"));
+    CHECK_THROWS_AS(sep("(a|b|c)"),
+                    invalid_regex); // FIXME: maybe this isn't invalid
     CHECK_THROWS_AS(sep("(a|c()"), invalid_regex);
 }
 
